@@ -425,7 +425,7 @@
             w_true = parseFloat(document.getElementById('w-input').value);
             b_true = parseFloat(document.getElementById('b-input').value);
             noiseScale = parseFloat(document.getElementById('noise-input').value);
-    
+
 
             [train_split, val_split, test_split] = gen_data_linear_regression(random, 100);
             epoch = 0;
@@ -680,7 +680,7 @@
         }
 
         function updateDataPlot() {
-            currentTransform = d3.zoomIdentity;
+            // currentTransform = d3.zoomIdentity;
             // Clear existing content
             scatter.selectAll("*").remove();
 
@@ -695,17 +695,24 @@
 
             // Draw the predicted line
             drawPredictedLine(x, y);
+
+            // Apply the current transform to maintain zoom and pan state
+            svg.select("rect").call(zoom.transform, currentTransform);
         }
 
+       
         function drawTrueLine() {
+            const newX = currentTransform.rescaleX(x);
+            const newY = currentTransform.rescaleY(y);
+
             const lineData = [
-                { x: x.domain()[0], y: w_true * x.domain()[0] + b_true },
-                { x: x.domain()[1], y: w_true * x.domain()[1] + b_true }
+                { x: newX.domain()[0], y: w_true * newX.domain()[0] + b_true },
+                { x: newX.domain()[1], y: w_true * newX.domain()[1] + b_true }
             ];
 
             const line = d3.line()
-                .x(d => x(d.x))
-                .y(d => y(d.y));
+                .x(d => newX(d.x))
+                .y(d => newY(d.y));
 
             scatter.append("path")
                 .datum(lineData)
@@ -721,15 +728,19 @@
                 });
         }
 
-        function drawPredictedLine(xScale, yScale) {
+
+        function drawPredictedLine() {
+            const newX = currentTransform.rescaleX(x);
+            const newY = currentTransform.rescaleY(y);
+
             const lineData = [
-                { x: xScale.domain()[0], y: w_pred * xScale.domain()[0] + b_pred },
-                { x: xScale.domain()[1], y: w_pred * xScale.domain()[1] + b_pred }
+                { x: newX.domain()[0], y: w_pred * newX.domain()[0] + b_pred },
+                { x: newX.domain()[1], y: w_pred * newX.domain()[1] + b_pred }
             ];
 
             const line = d3.line()
-                .x(d => xScale(d.x))
-                .y(d => yScale(d.y));
+                .x(d => newX(d.x))
+                .y(d => newY(d.y));
 
             scatter.selectAll(".predicted-line").remove();
             scatter.append("path")
@@ -738,7 +749,6 @@
                 .attr("fill", "none")
                 .attr("stroke", "#bbb")
                 .attr("stroke-width", 3)
-                // .attr("stroke-dasharray", "5,5")
                 .attr("d", line)
                 .on("mouseover", showYPredInfo)
                 .on("mouseout", clearInfo);
@@ -786,15 +796,36 @@
         }
 
 
+        // function plotDataPointsRegression(dataPoints, predictions, isTrainingSet, r = 5) {
+        //     const className = isTrainingSet ? "train-point" : "val-point";
+
+        //     scatter.selectAll(`.${className}`)
+        //         .data(dataPoints)
+        //         .join("circle")
+        //         .attr("class", `data-point regression ${isTrainingSet ? 'train' : 'val'}`)
+        //         .attr("cx", d => x(d[0]))
+        //         .attr("cy", d => y(d[1]))
+        //         .attr("r", r)
+        //         .on("mouseover", (event, d) => {
+        //             showDataPointInfo(event, d);
+        //         })
+        //         .on("mouseout", (event) => {
+        //             clearInfo();
+        //             removeLineToPrediction();
+        //         });
+
+        // }
         function plotDataPointsRegression(dataPoints, predictions, isTrainingSet, r = 5) {
             const className = isTrainingSet ? "train-point" : "val-point";
+            const newX = currentTransform.rescaleX(x);
+            const newY = currentTransform.rescaleY(y);
 
             scatter.selectAll(`.${className}`)
                 .data(dataPoints)
                 .join("circle")
                 .attr("class", `data-point regression ${isTrainingSet ? 'train' : 'val'}`)
-                .attr("cx", d => x(d[0]))
-                .attr("cy", d => y(d[1]))
+                .attr("cx", d => newX(d[0]))
+                .attr("cy", d => newY(d[1]))
                 .attr("r", r)
                 .on("mouseover", (event, d) => {
                     showDataPointInfo(event, d);
@@ -803,8 +834,8 @@
                     clearInfo();
                     removeLineToPrediction();
                 });
-
         }
+
 
         function removeLineToPrediction() {
             scatter.selectAll(".prediction-line").remove();
