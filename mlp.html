@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micrograd MLP Viz 2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #reporting-container {
+            font-size: 16px;
+            line-height: 1.5;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+
+        .loss-display {
+            display: flex;
+        }
+
+        .loss-label {
+            width: 250px;
+            /* Adjust this value as needed */
+        }
+
+        #main-container {
+            display: flex;
+            width: 100%;
+            height: 700px;
+        }
+
+        #svg-container {
+            flex: 0 0 1200px;
+            z-index: 10;
+            /* overflow: auto; */
+        }
+
+        #right-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #info-container {
+            /* flex: 1; */
+            min-height: 350px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+        }
+
+        #controls {
+            padding: 0 20px;
+        }
+
+        #bottom-right-container {
+            flex: 1;
+            padding: 15px 20px;
+            overflow-y: visible;
+        }
+
+        #info {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            line-height: 1.5;
+
+            height: 250px;
+            border-radius: 15px;
+            overflow-y: auto;
+
+        }
+
+        #info .katex {
+            font-size: 1.2em;
+        }
+
+        /*-=-=-=-=-=-=-=-=-=-=-=-=*/
+        /* MLP CSS*/
+        /*-=-=-=-=-=-=-=-=-=-=-=-=*/
+        #network {
+            border: 1px solid #ccc;
+        }
+
+        #layerDimInput {
+            width: 75px;
+            font-size: 16px;
+            font-weight: 500;
+            border: 0;
+            background-color: #dbf4ff33;
+        }
+
+        #layerDimInput:hover {
+            outline: 1px solid navy;
+        }
+
+        .layer:hover rect {
+            fill: rgb(190, 190, 190);
+            fill-opacity: 0.1;
+        }
+
+        .latex-label:hover {
+            filter: brightness(0.5);
+        }
+
+        .latex-label.selected {
+            filter: brightness(0.5);
+        }
+
+        .layer.selected>rect {
+            fill: rgb(190, 190, 190);
+            fill-opacity: 0.3;
+        }
+
+        /* Connections */
+        .connection:hover {
+            stroke-width: 4;
+            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.7));
+        }
+
+        .connection.positive {
+            stroke: rgb(100, 100, 255);
+        }
+
+        .connection.negative {
+            stroke: rgb(255, 100, 100);
+        }
+
+        .connection.selected {
+            stroke-width: 3;
+            stroke-opacity: 1;
+        }
+
+        /* Nodes */
+        .node {
+            cursor: pointer;
+        }
+
+        .node:hover {
+            fill: #ffb650;
+        }
+
+        .node.selected {
+            fill: #ffb650;
+        }
+
+        /* MLP actions */
+        #button-group-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        #button-group {
+            display: flex;
+            align-items: center;
+        }
+
+        #button-group button {
+            margin: 0 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: transparent;
+            color: navy;
+        }
+
+        #btn-edit-dims {
+            margin: 0 10px;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            /* border: 1px solid rgba(0, 0, 128, 0.4); */
+            border: 0;
+            box-shadow: 0 1px 4px 0 rgba(31, 38, 135, 0.2);
+            border-radius: 5px;
+            background-color: transparent;
+            color: navy;
+        }
+
+        #button-group .large-button {
+            font-size: 24px;
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 1px 4px 0 rgba(31, 38, 135, 0.2);
+        }
+
+
+        #button-group .small-button {
+            font-size: 18px;
+            padding: 8px 16px;
+            width: 50px;
+            height: 40px;
+        }
+
+        #button-group button:hover,
+        #btn-edit-dims:hover {
+            background-color: #e0f1f2;
+        }
+
+        #button-group button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #eee;
+        }
+
+        /* Data plot */
+        #data-visualization {
+            margin-top: 30px;
+        }
+
+        #data-plot {
+            
+        }
+
+        .data-point {
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .data-point.hit {
+            fill-opacity: 0.2;
+        }
+
+        .data-point.miss {
+            fill-opacity: 0.6;
+        }
+        /* .data-point.train {} */
+
+        .data-point.val {
+            stroke: #bbb;
+            stroke-width: 2;
+        }
+
+
+        .label-missing {
+            fill: gray;
+            fill-opacity: 1;
+        }
+
+        .label-0 {
+            fill: navy;
+        }
+
+        .label-1 {
+            fill: gold;
+        }
+
+        .label-2 {
+            fill: red;
+        }
+    </style>
+    <!-- for LaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
+    <!-- for anim -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <!-- for plotting data -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+    <!--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        HTML
+     -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-->
+    <div id="main-container">
+        <div id="svg-container">
+            <svg id="network" width="1200" height="700"></svg>
+        </div>
+        <div id="right-container">
+            <div id="info-container">
+                <div id="info"></div>
+                <div id="button-group-container">
+                    <div id="button-group">
+                        <button id="btn-reset-mlp" class="small-button">↺</button>
+                        <button id="btn-shock-weights" class="small-button">ϟ</button>
+                        <button id="btn-play-pause" class="large-button">
+                            <span id="btn-play-pause-content">▶</span>
+                        </button>
+
+                        <button id="btn-step" class="small-button">▶|</button>
+                        <button id="btn-fwd-backprop-update" class="small-button">→</button>
+                    </div>
+                </div>
+            </div>
+            <div id="bottom-right-container">
+                <div id="controls">
+                    <span>[2, </span>
+                    <input type="text" id="layerDimInput">
+                    <span> 3]</span>
+                    <button id="btn-edit-dims" onclick="updateNetwork()">Edit hidden layer dimensions</button>
+                </div>
+                <div class="container">
+                    <div id="data-visualization">
+                        <!-- <svg id="data-plot" width="450" height="380"></svg> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="reporting-container">
+        <div id="epoch-display">Epoch: N/A</div>
+        <div id="train-loss-display" class="loss-display">
+            <span class="loss-label">Training Loss:</span>
+            <span id="train-loss-value">N/A</span>
+        </div>
+        <div id="val-loss-display" class="loss-display">
+            <span class="loss-label">Validation Loss:</span>
+            <span id="val-loss-value">N/A</span>
+        </div>
+        <div id="log-container"></div>
+    </div>
+
+
+
+
+    <!--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        Javascript
+     -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-->
+    <script>
+        // globals
+        let mlp;
+        let layerDims;
+        let train_split, val_split, test_split;
+        let predsTrain, predsVal;
+
+        let isRunningOptimization = false;
+        let epoch = 0;
+
+        let currentTrainingStage = 0; // 0: forward, 1: backward, 2: update
+        let maxStrength = 0.001;
+        let maxGradient = 0.001;
+
+        // AdamW
+        let learning_rate = 1e-1;
+        let beta1 = 0.9;
+        let beta2 = 0.95;
+        let weight_decay = 1e-4;
+        const eps = 1e-8;
+
+        const shockNoiseScale = 0.3; // Adjust this value to control the magnitude of the shock
+
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const btnStep = document.getElementById('btn-step');
+        const btnResetMLP = document.getElementById('btn-reset-mlp');
+        const btnFwdBackUp = document.getElementById('btn-fwd-backprop-update');
+
+        const infoElement = document.getElementById('info');
+
+
+        let selectedElement = null;
+        const svg = document.getElementById('network');
+        // const info = document.getElementById('info');
+        const MAX_LAYER_SIZE = 16;
+        const MAX_N_LAYERS_HIDDEN = 3;
+        const initialHidden = "2,"
+        const initialLayers = `[2, ${initialHidden} 3]`
+        // const initialLayers = "[2, 10, 10, 3]"
+        layerDims = JSON.parse(initialLayers)
+        let svgWidth = 1200;
+        let svgHeight = 700;
+
+        // Global variables for D3.js plot
+        let svgDataPoints, x, y, xAxis, yAxis, scatter; 
+        let currentTransform = d3.zoomIdentity;
+
+        const valInterval = 10; // interval for calculating validation loss
+
+        const LATEX_FONT_SIZE = 16;
+        const LATEX_COLOR = '#999';
+        const LATEX_COLOR_LOSS = '#666';
+        const layerColors = {
+            x: {
+                shape: "#ccc",
+                overlay: "rgba(204, 204, 204, 0.1)"
+            },
+            fc: {
+                // keep layer display minimaly white for now
+                shape: '#FFFFFF',
+                overlay: "rgba(255, 255, 255, 0.2)"
+            },
+            y: {
+                shape: "#ccc",
+                overlay: "rgba(204, 204, 204, 0.1)"
+            },
+            bias: {
+                shape: "#999",
+            }
+        };
+
+
+        function getLayerColor(layerIndex) {
+            if (layerIndex === 0) return layerColors.x;
+            if (layerIndex === layerDims.length) return layerColors.y;
+            return layerColors.fc;
+        }
+
+
+        function resetAdamMLP() {
+            for (const p of mlp.parameters()) {
+                p.m = 0.0;
+                p.v = 0.0;
+            }
+        }
+
+        function resetData() {
+            [train_split, val_split, test_split] = gen_data(random);
+            resetTrainingDisplay();
+            epoch = 0;
+            predsTrain = [];
+            predsVal = [];
+            updateDataPlot();
+        }
+
+
+        function resetMLP() {
+            const inputSize = layerDims[0];
+            const outputSize = layerDims[layerDims.length - 1];
+            const hiddenLayers = layerDims.slice(1, -1);
+            mlp = new MLP(inputSize, hiddenLayers.concat(outputSize));
+            resetAdamMLP();
+
+            currentTrainingStage = 0;
+            epoch = 0;
+            resetTrainingDisplay();
+            updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
+            predsTrain = [];
+            predsVal = [];
+            updateDataPlot();
+
+            // Clear the existing SVG and draw the new network
+            drawNetwork();
+        }
+
+
+        function updateNetwork() {
+            let input = document.getElementById('layerDimInput').value.trim();
+            try {
+                let cleanedInput;
+                let newLayers;
+                if (input == "") {
+                    cleanedInput = "";
+                    newLayers = [2, 3];
+                } else {
+                    // Add trailing comma if missing
+                    if (!input.endsWith(',')) {
+                        input += ',';
+                    }
+                    cleanedInput = input.replace(/,\s*$/, ',').trim(); // Ensure single trailing comma
+                    newLayers = JSON.parse(`[2, ${cleanedInput} 3]`);
+                }
+                console.log("h3")
+                if (Array.isArray(newLayers) && newLayers.length >= 2 && newLayers.length <= MAX_N_LAYERS_HIDDEN + 2 && newLayers.every(n => n <= MAX_LAYER_SIZE)) {
+                    layerDims = newLayers;
+                    resetMLP();
+                    // Update the input field to reflect the correct interpretation
+                    document.getElementById('layerDimInput').value = cleanedInput;
+                } else {
+                    alert(`Invalid input. Please use format n1, n2, .. with max ${MAX_N_LAYERS_HIDDEN} hidden layers and max ${MAX_LAYER_SIZE} nodes per layer.`);
+                }
+            } catch (e) {
+                alert('Invalid input. Please use format n1, n2, ..');
+            }
+        }
+
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Draw the MLP
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function setMaxes() {
+            if (!mlp) {
+                return
+            }
+
+            [maxStrength, maxGradient] = mlp.parameters().reduce((max, v) => [
+                Math.max(max[0], Math.abs(v.data)),
+                Math.max(max[1], Math.abs(v.grad))
+            ], [-Infinity, -Infinity]);
+        }
+
+        function drawNetwork() {
+            svg.innerHTML = '';
+
+            const layerGap = svgWidth / (layerDims.length + 2);
+            setMaxes(); // get max strength and gradient of network for drawing
+
+            // draw layer rectangles, nodes, and connections for each layer
+            const layerGroupWidth = 30;
+            for (let layerIndex = 0; layerIndex < layerDims.length; layerIndex++) {
+                const nodeCountNoBias = layerDims[layerIndex]
+
+                const svgX = (layerIndex + 1) * layerGap;
+                const layerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                layerGroup.classList.add('layer');
+                layerGroup.dataset.layer = layerIndex;
+
+                const layerRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                layerRect.setAttribute('x', svgX - layerGroupWidth / 2);
+                layerRect.setAttribute('y', 0);
+                layerRect.setAttribute('width', layerGroupWidth);
+                layerRect.setAttribute('height', svgHeight);
+                const layerColor = getLayerColor(layerIndex);
+                layerRect.setAttribute('fill', layerColor.overlay);
+
+                layerGroup.appendChild(layerRect);
+
+                layerGroup.addEventListener('mouseover', showInfo);
+                layerGroup.addEventListener('mouseout', clearInfo);
+                // layerGroup.addEventListener('click', showInfo);
+
+                const totalNodes = layerIndex < layerDims.length - 1 ? nodeCountNoBias + 1 : nodeCountNoBias;
+
+                for (let i = 0; i < nodeCountNoBias; i++) {
+                    const svgY = (i + 1) * (svgHeight / (totalNodes + 1));
+                    drawNode(svgX, svgY, layerIndex, i, layerGroup);
+                }
+
+                // Add bias node for all layers except the last one
+                if (layerIndex < layerDims.length - 1) {
+                    const biasY = (nodeCountNoBias + 1) * (svgHeight / (totalNodes + 1));
+                    drawBiasNode(svgX, biasY, layerIndex, layerGroup);
+                }
+
+                svg.appendChild(layerGroup);
+
+                // Draw connections
+                if (layerIndex < layerDims.length - 1) {
+                    drawConnections(layerIndex, svgX, layerGap);
+                }
+            }
+
+            // Draw the additional "y" layer
+            const yLayerX = (layerDims.length + 1) * layerGap;
+            const yLayerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            yLayerGroup.classList.add('layer');
+            yLayerGroup.dataset.layer = layerDims.length;
+
+            const yLayerRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            yLayerRect.setAttribute('x', yLayerX - layerGroupWidth / 2);
+            yLayerRect.setAttribute('y', 0);
+            yLayerRect.setAttribute('width', layerGroupWidth);
+            yLayerRect.setAttribute('height', svgHeight);
+            yLayerRect.setAttribute('fill', layerColors.y.overlay);
+
+            yLayerGroup.appendChild(yLayerRect);
+
+            yLayerGroup.addEventListener('mouseover', showInfo);
+            yLayerGroup.addEventListener('mouseout', clearInfo);
+            // yLayerGroup.addEventListener('click', showInfo);
+
+            const lastLayerNodeCount = layerDims[layerDims.length - 1];
+            for (let i = 0; i < lastLayerNodeCount; i++) {
+                const svgY = (i + 1) * (svgHeight / (lastLayerNodeCount + 1));
+                drawNode(yLayerX, svgY, layerDims.length, i, yLayerGroup);
+            }
+
+            svg.appendChild(yLayerGroup);
+
+            // Draw connections between y_hat and y
+            drawYConnections(layerDims.length - 1, (layerDims.length) * layerGap, layerGap);
+
+            // Draw the curly brace and "loss" text
+            const lastLayerX = (layerDims.length + 1) * layerGap;
+            const braceWidth = layerGroupWidth / 2;
+            const topNodeY = (1) * (svgHeight / (lastLayerNodeCount + 1));
+            const bottomNodeY = (lastLayerNodeCount) * (svgHeight / (lastLayerNodeCount + 1));
+            const braceHeight = bottomNodeY - topNodeY;
+            const braceX = lastLayerX + layerGroupWidth;
+            const braceY = topNodeY;
+
+            const brace = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            brace.setAttribute('d', `M ${braceX} ${braceY}
+                         C ${braceX} ${braceY + braceHeight * 0.05}, ${braceX + braceWidth * 0.6} ${braceY + braceHeight * 0.1}, ${braceX + braceWidth * 0.8} ${braceY + braceHeight * 0.2}
+                         C ${braceX + braceWidth} ${braceY + braceHeight * 0.3}, ${braceX + braceWidth} ${braceY + braceHeight * 0.4}, ${braceX + braceWidth} ${braceY + braceHeight * 0.45}
+                         L ${braceX + braceWidth * 1.5} ${braceY + braceHeight * 0.5}
+                         L ${braceX + braceWidth} ${braceY + braceHeight * 0.55}
+                         C ${braceX + braceWidth} ${braceY + braceHeight * 0.6}, ${braceX + braceWidth} ${braceY + braceHeight * 0.7}, ${braceX + braceWidth * 0.8} ${braceY + braceHeight * 0.8}
+                         C ${braceX + braceWidth * 0.6} ${braceY + braceHeight * 0.9}, ${braceX} ${braceY + braceHeight * 0.95}, ${braceX} ${braceY + braceHeight}`);
+            brace.setAttribute('fill', 'none');
+            brace.setAttribute('stroke', '#ccc');
+            brace.setAttribute('stroke-width', '2');
+            svg.appendChild(brace);
+
+            addLayerLabels();
+            addLossLabel();
+        }
+
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Draw nodes
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function drawNode(x, y, layerIndex, nodeIndex, parent, isBiasNode = false) {
+            const r = 10;
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            const shapeColor = isBiasNode ? layerColors.bias.shape : getLayerColor(layerIndex).shape
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', isBiasNode ? r / 2 : r);
+            circle.setAttribute('fill', shapeColor);
+            circle.setAttribute('stroke', 'gray');
+            circle.setAttribute('stroke-width', '1');
+            circle.classList.add('node');
+            circle.dataset.layer = layerIndex;
+            circle.dataset.node = nodeIndex;
+            parent.appendChild(circle);
+
+            circle.addEventListener('mouseover', showInfo);
+            circle.addEventListener('mouseout', clearInfo);
+            // circle.addEventListener('click', showInfo);
+            circle.addEventListener('mouseenter', handleNodeHover);
+            circle.addEventListener('mouseleave', resetConnectionHighlights);
+        }
+
+        function drawBiasNode(x, y, layerIndex, parent) {
+            drawNode(x, y, layerIndex, layerDims[layerIndex], parent, true);
+        }
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Draw connections
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function drawConnections(layerIndex, layerXCoord, layerGap) {
+            const currentLayer = mlp.layers[layerIndex];
+            const currentLayerSize = currentLayer.neurons.length;
+            const maxOpacity = 1;
+
+            for (let i = 0; i < currentLayerSize; i++) {
+                const neuron = currentLayer.neurons[i];
+                let toY = (i + 1) * (svgHeight / (currentLayerSize + 2));
+                if (layerIndex == layerDims.length - 2) {
+                    // y_hat, no bias
+                    toY = (i + 1) * (svgHeight / (currentLayerSize + 1));
+                }
+                // these weights project backward, meaning they describe how these neurons
+                // connect to the previous layers nodes
+                const neuronWeights = neuron.parameters()
+                const prevLayerSize = neuronWeights.length
+
+                for (let j = 0; j < prevLayerSize; j++) {
+                    const fromY = (j + 1) * (svgHeight / (prevLayerSize + 1));
+                    const weight = neuronWeights[j];
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', layerXCoord);
+                    line.setAttribute('y1', fromY);
+                    line.setAttribute('x2', layerXCoord + layerGap);
+                    line.setAttribute('y2', toY);
+                    line.setAttribute('stroke', '#999');
+                    line.setAttribute('stroke-width', '1');
+
+                    const strength = weight.data;
+                    const opacity = Math.min(Math.abs(strength) / maxStrength, maxOpacity);
+                    line.setAttribute('stroke-opacity', opacity);
+
+                    line.classList.add('connection');
+                    line.dataset.from = `${layerIndex},${j}`;
+                    line.dataset.to = `${layerIndex + 1},${i}`;
+                    line.dataset.strength = strength.toFixed(4);
+                    line.dataset.gradient = weight.grad.toFixed(4);
+
+                    svg.appendChild(line);
+
+                    line.addEventListener('mouseover', showInfo);
+                    line.addEventListener('mouseout', (event) => {
+                        clearInfo(event);
+                        resetConnectionAppearance(event);
+                    });
+                }
+            }
+        }
+
+
+        function drawYConnections(layerIndex, x, layerGap) {
+            const currentLayer = layerDims[layerIndex];
+
+            for (let i = 0; i < currentLayer; i++) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x);
+                line.setAttribute('y1', (i + 1) * (svgHeight / (currentLayer + 1)));
+                line.setAttribute('x2', x + layerGap);
+                line.setAttribute('y2', (i + 1) * (svgHeight / (currentLayer + 1)));
+                line.setAttribute('stroke', '#999');
+                line.setAttribute('stroke-width', '1');
+                line.setAttribute('stroke-dasharray', '5,5');
+
+                line.classList.add('connection');
+                line.dataset.from = `${layerIndex},${i}`;
+                line.dataset.to = `${layerIndex + 1},${i}`;
+                svg.appendChild(line);
+
+                line.addEventListener('mouseover', showInfo);
+                line.addEventListener('mouseout', clearInfo);
+                line.addEventListener('click', showInfo);
+            }
+        }
+
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Draw data points
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function initializeD3Plot() {
+            const margin = { top: 10, right: 30, bottom: 30, left: 60 };
+            const width = 450 - margin.left - margin.right;
+            const height = 380 - margin.top - margin.bottom;
+
+            // Append the SVG object to the data-plot div 
+            // svgDataPoints = d3.select("#data-plot")
+            svgDataPoints = d3.select("#data-visualization")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // Add X axis
+            x = d3.scaleLinear()
+                .domain([-2, 2])
+                .range([0, width]);
+            xAxis = svgDataPoints.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+
+            // Add Y axis
+            y = d3.scaleLinear()
+                .domain([-2, 2])
+                .range([height, 0]);
+            yAxis = svgDataPoints.append("g")
+                // .attr("transform", `translate(${width},0)`)
+                .call(d3.axisLeft(y));
+
+            // Add grid line at x = 0
+            svgDataPoints.append("line")
+                .attr("class", "grid-line vertical")
+                .attr("x1", x(0))
+                .attr("y1", 0)
+                .attr("x2", x(0))
+                .attr("y2", height)
+                .attr("stroke", "#ddd")
+                .attr("stroke-dasharray", "4");
+
+            // // Add grid line at y = 0
+            svgDataPoints.append("line")
+                .attr("class", "grid-line horizontal")
+                .attr("x1", 0)
+                .attr("y1", y(0))
+                .attr("x2", width)
+                .attr("y2", y(0))
+                .attr("stroke", "#ddd")
+                .attr("stroke-dasharray", "4");
+
+            // Add a clipPath
+            svgDataPoints.append("defs").append("SVG:clipPath")
+                .attr("id", "clip")
+                .append("SVG:rect")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("x", 0)
+                .attr("y", 0);
+
+            // Create the scatter variable
+            scatter = svgDataPoints.append('g')
+                .attr("clip-path", "url(#clip)");
+
+            // Add zoom capabilities
+            const zoom = d3.zoom()
+                .scaleExtent([0.8, 10])
+                .extent([[0, 0], [width, height]])
+                .on("zoom", updateChart);
+
+            svgDataPoints.append("rect")
+                .attr("width", width)
+                .attr("height", height)
+                .style("fill", "none")
+                .style("pointer-events", "all") // IMPORTANT allow panning and zoom
+                .style("cursor", "move")
+                .lower() // IMPORTANT Move this rect to the back to capture on hover effects for data points
+                .call(zoom);
+        }
+
+
+        function updateChart(event) {
+            currentTransform = event.transform;
+            // Recover new scale
+            const newX = currentTransform.rescaleX(x);
+            const newY = currentTransform.rescaleY(y);
+
+            // Update axes
+            xAxis.call(d3.axisBottom(newX));
+            yAxis.call(d3.axisLeft(newY));
+
+            // Update vertical grid line (x = 0)
+            svgDataPoints.select(".grid-line.vertical")
+                .attr("x1", newX(0))
+                .attr("x2", newX(0));
+
+            // Update horizontal grid line (y = 0)
+            svgDataPoints.select(".grid-line.horizontal")
+                .attr("y1", newY(0))
+                .attr("y2", newY(0));
+
+            // Update data points
+            scatter.selectAll(".data-point")
+                .attr("transform", d => {
+                    const cx = newX(d.x0);
+                    const cy = newY(d.x1);
+                    return `translate(${cx},${cy})`;
+                });
+        }
+
+        function plotDataPoints(dataPoints, predictions, isTrainingSet, r = 5) {
+            const className = isTrainingSet ? 'train' : 'val';
+           
+            const pointGroup = scatter.selectAll(`.data-point.${className}`)
+                .data(dataPoints)
+                .enter()
+                .append("g")
+                .attr("class", d => `data-point ${predictions[dataPoints.indexOf(d)] === d[1] ? 'hit' : 'miss'} label-${d[1]} ${isTrainingSet ? 'train' : 'val'}`)
+                .attr("transform", d => `translate(${x(d[0][0])},${y(d[0][1])})`)
+                .on("mouseover", (event, d) => {
+                    showDataPointInfo(event, d);
+                })
+                .on("mouseout", clearInfo);
+
+            pointGroup.each(function (d) {
+                const shape = d3.select(this);
+                const label = d[1];
+
+                shape.append("circle").attr("r", r);
+                // switch (label) {
+                //     case 0:
+                //         shape.append("circle")
+                //             .attr("r", r);
+                //         break;
+                //     case 1:
+                //         shape.append("rect")
+                //             .attr("x", -r)
+                //             .attr("y", -r)
+                //             .attr("width", r * 2)
+                //             .attr("height", r * 2);
+                //         break;
+                //     case 2:
+                //         const adjSz = r + 1;
+                //         shape.append("polygon")
+                //             .attr("points", `0,${-adjSz} ${-adjSz},${adjSz} ${adjSz},${adjSz}`);
+                //         break;
+                // }
+
+                shape.datum({
+                    x0: d[0][0].toFixed(2),
+                    x1: d[0][1].toFixed(2),
+                    actualLabel: label,
+                    predictedLabel: predictions[dataPoints.indexOf(d)],
+                    isHit: predictions[dataPoints.indexOf(d)] === label,
+                    set: isTrainingSet ? 'Training' : 'Validation'
+                });
+            });
+        }
+
+        function updateDataPlot() {
+            // Clear existing content
+            scatter.selectAll("*").remove();
+
+            // Plot training data
+            plotDataPoints(train_split, predsTrain, true);
+
+            // Plot validation data
+            plotDataPoints(val_split, predsVal, false);
+        }
+
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Display detailed info top-right
+        // 
+        // TODO later - selectedElement logic so that a click on an el keeps it in display until next click
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function showInfo(event) {
+            const target = event.target;
+            let content = '';
+
+            if (target.id === 'btn-play-pause' || target.id === "btn-play-pause-content") {
+                if (isRunningOptimization) {
+                    content = "Pause optimization";
+                } else {
+                    content = "Run optimization";
+                }
+            } else if (target.id === 'btn-fwd-backprop-update') {
+                switch (currentTrainingStage) {
+                    case 0:
+                        content = "**Forward pass**: run inference/prediction on the input data to produce predictions $$\\hat{y}$$ and calculate loss with respect to the true output values $$y$$.";
+                        break;
+                    case 1:
+                        // content = "**Backpropagate gradients**: Use the loss information to calculate gradients for each of the tunable weight parameters $$ W $$, starting at the end of the MLP and using the gradient information from later layers to calculate how much we should change the weights in the earlier layers. We are able to accomplish this using the chain rule from calculus ($$\\dfrac{dL}{dW_{l}} → \\dfrac{dL}{dW_{l-1}} → ... → \\dfrac{dL}{dW_{1}}$$, where $$l$$ is the number of layers in our MLP)";
+                        content = "**Backpropagate gradients**: Use the loss information to calculate gradients for each of the tunable weight parameters $$ W $$, starting at the end of the MLP and using the gradient information from later layers to calculate how much we should change the weights in the earlier layers.\n\nWe are able to accomplish this using the chain rule from calculus.";
+                        break;
+                    case 2:
+                        showNetworkGradients();
+                        content = "**Update weights**: Use the gradient information to update the weights $$ W $$ of the network based on our optimization algorithm (AdamW in this case) and hyperparameters (e.g. learning rate, weight decay), with the goal of nudging this network towards better predictions of the output given the input.\n\nWe also zeros out the gradients to prepare for the next step.";
+                        break;
+                }
+            } else if (target.id === 'btn-reset-mlp') {
+                content = "Reset the network parameters to randomly initialized values based on the Uniform Xavier initialization.";
+            } else if (target.id === 'btn-shock-weights') {
+                content = `\"Shock\" the weights: perturb the weight parameters by adding a small amount of uniform random noise between $$[-${shockNoiseScale}, ${shockNoiseScale}]$$.`;
+            } else if (target.id === 'btn-step') {
+                content = "Run one full epoch of the training loop and show network animations illustrating the forward pass, backpropagation of gradients, and update of the weights.";
+            } else if (target.id === 'layerDimInput') {
+                content = "Enter the dimensions of hidden layers, separated by commas.\n\nInput must be comma-separated integers. Maximum " + MAX_N_LAYERS_HIDDEN + " hidden layers and " + MAX_LAYER_SIZE + " neurons per layer.\n\nFor example, $$16,8$$ creates two hidden layers with 16 and 8 neurons respectively.";
+            } else if (target.id === 'btn-edit-dims') {
+                content = "Initialize a new network with the given dimensions.\n\nThis will reset all weights and biases to new random values based on the specified layer structure and the Uniform Xavier Initialization.";
+            } else if (target.classList.contains('node')) {
+                const layerIndex = parseInt(target.dataset.layer);
+                const nodeIndex = parseInt(target.dataset.node);
+                const isBiasNode = nodeIndex === layerDims[layerIndex];
+                if (isBiasNode) {
+                    content = `Identity node representing the static number $$1$$.\n\nIt provides a way to add the bias term as part of the matrix multiplication, instead performing a seperate addition.`;
+                } else if (layerIndex === 0) {
+                    content = `Input feature at index $$${nodeIndex}$$`;
+                } else if (layerIndex === layerDims.length - 1) {
+                    content = `Output feature at index $$${nodeIndex}$$ for $$\\hat{y}$$`;
+                } else if (layerIndex === layerDims.length) {
+                    content = `Output feature at index $$${nodeIndex}$$ for $$y$$`;
+                } else {
+                    content = `Node in fully connected layer ${layerIndex}, index ${nodeIndex}`;
+                }
+            } else if (target.classList.contains('connection')) {
+                const [fromLayer, fromNode] = target.dataset.from.split(',');
+                const [toLayer, toNode] = target.dataset.to.split(',');
+                const fromLayerIndex = parseInt(fromLayer);
+                const toLayerIndex = parseInt(toLayer);
+                const fromNodeIndex = parseInt(fromNode);
+                const toNodeIndex = parseInt(toNode);
+
+
+                if (fromLayerIndex === layerDims.length - 1 && toLayerIndex === layerDims.length) {
+                    content = `Compare $$\\hat{y}$$ and $$y$$ at feature index ${fromNodeIndex}`;
+                } else {
+                    const strength = parseFloat(target.dataset.strength);
+                    const gradient = parseFloat(target.dataset.gradient);
+                    const absGradient = Math.abs(gradient);
+                    const gradEpsilon = 0.0001;
+
+                    let color;
+                    if (gradient >= 0) {
+                        color = `rgba(0, 0, 255, ${absGradient / (maxGradient + gradEpsilon)})`;
+                    } else {
+                        color = `rgba(255, 0, 0, ${absGradient / (maxGradient + gradEpsilon)})`;
+                    }
+
+                    target.style.filter = `drop-shadow(0 0 3px ${color})`;
+                    if (strength >= 0) {
+                        target.classList.add('positive');
+                        target.classList.remove('negative');
+                    } else {
+                        target.classList.add('negative');
+                        target.classList.remove('positive');
+                    }
+                    if (fromNodeIndex === layerDims[fromLayerIndex] + 1) {
+                        content = `Bias term for node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                    } else if (fromNodeIndex === 0) {
+                        content = `Connection from node $$${fromNodeIndex}$$ in the input layer to node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                    } else {
+                        content = `Connection from node $$${fromNodeIndex}$$ in layer $$${fromLayerIndex}$$ to node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                    }
+                    content += `\nGradient: $$${gradient.toFixed(4)}$$`;
+
+                }
+            } else if (target.classList.contains('layer') || target.parentElement.classList.contains('layer')) {
+                const layer = target.classList.contains('layer') ? target : target.parentElement;
+                const layerIndex = parseInt(layer.dataset.layer);
+                if (layerIndex === 0) {
+                    content = `Input layer, containing $$ ${layerDims[layerIndex]}$$ features`;
+                } else if (layerIndex === layerDims.length - 1) {
+                    content = `Output layer $$\\hat{y}$$, containing $$ ${layerDims[layerIndex]}$$ features`;
+                } else if (layerIndex === layerDims.length) {
+                    content = `True values $$y$$, containing $$${layerDims[layerDims.length - 1]}$$ features`;
+                } else {
+                    content = `Fully connected layer ${layerIndex}, containing $$${layerDims[layerIndex]}$$ nodes`;
+                }
+            } else if (target.closest('.latex-label')) {
+                const latexLabel = target.closest('.latex-label');
+                const formula = latexLabel.dataset.latex;
+                let explanation = '';
+
+                switch (latexLabel.dataset.info) {
+                    case 'x':
+                        explanation = "This represents the input to the neural network.\n\nIn this case, it's a 2D array containing the $$x1$$ and $$x2$$ coordinates of each data point.";
+                        break;
+                    case 'y':
+                        explanation = "This is the true label vector, representing the correct classification for the input.\n\nIt's a one-hot encoded with $$3$$s elements, corresponding to the three possible classes.";
+                        break;
+                    case 'y_hat':
+                        explanation = "This is the predicted output of the neural network. It has $$3$$ elements, each representing the network's confidence that the input belongs to one of the three classes.";
+                        break;
+                    case 'loss':
+                        explanation = `This is the loss function, which measures the difference between the predicted output $$\\hat{y}$$ and the true label $$y$$. We use cross-entropy loss for this classification task.\n\nThe goal of training is to minimize this loss, bringing $$\\hat{y}$$ and $$y$$ closer for every input.`;
+                        break;
+                    default:
+                        if (latexLabel.dataset.info.startsWith('W')) {
+                            const layerNum = latexLabel.dataset.info.slice(1);
+                            explanation = `This represents the weight matrix for layer $$ ${layerNum}$$.`; // TODO more info
+                        } else if (latexLabel.dataset.info.startsWith('fc')) {
+                            const layerNum = latexLabel.dataset.info.slice(2);
+                            explanation = `This represents the operation in fully connected layer $$ ${layerNum}$$.\n\n ... $$\\phi$$ (in this case, $$tanh$$).`;
+                        }
+                }
+
+                content = `$$${formula}$$\n\n${explanation}`;
+            }
+
+
+
+            renderInfoContent(infoElement, content);
+        }
+
+        function showDataPointInfo(event, pointData) {
+            const xValue = pointData.x0
+            const yValue = pointData.x1
+            const predictedLabel =  pointData.predictedLabel
+            const actualLabel =  pointData.actualLabel
+            const isHit = pointData.isHit
+            const dataset = pointData.set
+
+            // TODO include above info if nexessary
+            const target = event.target;
+            const isTraining = dataset === "Training";
+            const calculationFrequency = isTraining
+                ? "Updated every epoch"
+                : `Evaluated every ${valInterval} epochs`;
+
+            const content = `**${dataset}** Data Point (${calculationFrequency})\n
+                Coordinates: (${xValue}, ${yValue})
+                Actual Label: ${actualLabel}
+                Predicted Label: ${predictedLabel}\n
+                ${isHit === true ? '**Correct** Prediction' : '**INCORRECT** Prediction'}`;
+            renderInfoContent(infoElement, content);
+        }
+
+
+        function showReportingInfo(event) {
+            const target = event.currentTarget;
+            let content = '';
+
+            function formatLossForLatex(lossValue) {
+                if (lossValue === 'N/A') return 'N/A';
+                const number = parseFloat(lossValue);
+                if (isNaN(number)) return 'N/A';
+
+                // Format to scientific notation with 5 decimal places
+                let [coefficient, exponent] = number.toExponential(3).split('e');
+
+                // Remove leading '+' from exponent if present
+                exponent = parseInt(exponent);
+
+                // Format for LaTeX
+                return `${coefficient} \\times 10^{${exponent}}`;
+            }
+
+            if (target.id === 'epoch-display') {
+                content = "An **epoch** is one complete pass through the entire training dataset. It represents a full cycle of training where the model has seen and learned from all available training examples once.";
+            } else if (target.id === 'train-loss-display') {
+                const trainLoss = formatLossForLatex(document.getElementById('train-loss-value').textContent);
+                content = `**Training Loss**: The average loss (error) of the model on the training dataset.\n\nLower values indicate better performance on the training data.\n\nCurrent value: $$ ${trainLoss}$$`;
+            } else if (target.id === 'val-loss-display') {
+                const valLoss = formatLossForLatex(document.getElementById('val-loss-value').textContent);
+                content = `**Validation Loss**: The average loss (error) of the model on the validation dataset.\n\nThis helps assess how well the model generalizes to unseen data.\n\nCurrent value: $$ ${valLoss}$$.`;
+            }
+
+            renderInfoContent(infoElement, content);
+        }
+
+        function showNetworkGradients() {
+            const connections = document.querySelectorAll('.connection');
+            const nonZeroGradConnections = Array.from(connections).filter(connection => {
+                return parseFloat(connection.dataset.grad) !== 0;
+            });
+
+            nonZeroGradConnections.forEach(connection => {
+                connection.classList.add('highlighted');
+                // connection.setAttribute('stroke-width', '3');
+                // connection.setAttribute('color', 'red')
+
+                const gradient = parseFloat(connection.dataset.gradient);
+                const absGradient = Math.abs(gradient);
+                const gradEpsilon = 0.0001;
+
+                let color;
+                if (gradient >= 0) {
+                    color = `rgba(0, 0, 255, ${absGradient / (maxGradient + gradEpsilon)})`;
+                } else {
+                    color = `rgba(255, 0, 0, ${absGradient / (maxGradient + gradEpsilon)})`;
+                }
+                connection.style.filter = `drop-shadow(0 0 3px ${color})`;
+                // // conn.style.filter = `drop-shadow(0 0 3px ${color})`;
+                // if (strength >= 0) {
+                //     conn.classList.add('positive');
+                //     conn.classList.remove('negative');
+                // } else {
+                //     conn.classList.add('negative');
+                //     conn.classList.remove('positive');
+                // }
+            });
+
+        }
+
+        function clearInfo(event) {
+            if (!selectedElement) {
+                document.getElementById('info').textContent = '';
+            }
+        }
+
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Create figure labels
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function createLatexLabel(x, y, text, color, labelInfo) {
+            const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+            foreignObject.setAttribute('x', x - 75);
+            foreignObject.setAttribute('y', y - 20);
+            foreignObject.setAttribute('width', '150');
+            foreignObject.setAttribute('height', '40');
+            foreignObject.classList.add('latex-label');
+            foreignObject.dataset.latex = text;
+            foreignObject.dataset.info = labelInfo;
+
+            const div = document.createElement('div');
+            div.style.fontSize = LATEX_FONT_SIZE + 'px';
+            div.style.color = color;
+            div.style.display = 'flex';
+            div.style.justifyContent = 'center';
+            div.style.alignItems = 'center';
+            div.style.height = '100%';
+
+            katex.render(text, div, {
+                throwOnError: false
+            });
+
+            foreignObject.appendChild(div);
+            foreignObject.addEventListener('mouseover', showInfo);
+            foreignObject.addEventListener('mouseout', clearInfo);
+            foreignObject.addEventListener('click', showInfo);
+
+            return foreignObject;
+        }
+
+
+        function addLayerLabels() {
+            const layerGap = svgWidth / (layerDims.length + 2);
+
+            // Input layer label
+            svg.appendChild(createLatexLabel(layerGap, svgHeight - 20, '\\mathbf{x}', LATEX_COLOR, "x"));
+            // Hidden layer labels
+            for (let i = 1; i < layerDims.length - 1; i++) {
+                svg.appendChild(createLatexLabel((i + 1) * layerGap, svgHeight - 20, `\\mathbf{x}:=\\phi(\\mathbf{W}_{${i}}\\mathbf{x})`, LATEX_COLOR, "fc" + i));
+            }
+            // Output layer label
+            svg.appendChild(createLatexLabel(layerDims.length * layerGap, svgHeight - 20, `\\hat{\\mathbf{y}} := \\mathbf{W}_{${layerDims.length - 1}}\\mathbf{x}`, LATEX_COLOR, "y_hat"));
+            // True values label
+            svg.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, '\\mathbf{y}', LATEX_COLOR, "y"));
+            // Weight labels
+            for (let i = 1; i < layerDims.length; i++) {
+                svg.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `\\mathbf{W}_{${i}}`, LATEX_COLOR, "W" + i));
+            }
+        }
+
+
+        function addLossLabel() {
+            const lastLayerX = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
+            const braceWidth = 15;
+            svg.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{\\mathbf{y}}, \\mathbf{y})', LATEX_COLOR_LOSS, "loss"));
+        }
+
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Rendering events and helpers
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function renderInfoContent(element, content) {
+            element.innerHTML = '';
+            let currentIndex = 0;
+
+            while (currentIndex < content.length) {
+                if (content.startsWith('$$', currentIndex)) {
+                    // LaTeX content
+                    const endIndex = content.indexOf('$$', currentIndex + 2);
+                    if (endIndex === -1) {
+                        console.error('Unclosed LaTeX at position', currentIndex);
+                        break;
+                    }
+                    const latexContent = content.slice(currentIndex + 2, endIndex);
+                    const span = document.createElement('span');
+                    katex.render(latexContent, span, {
+                        throwOnError: false,
+                        displayMode: false
+                    });
+                    element.appendChild(span);
+                    currentIndex = endIndex + 2;
+                } else if (content.startsWith('**', currentIndex)) {
+                    // Bold content
+                    const endIndex = content.indexOf('**', currentIndex + 2);
+                    if (endIndex === -1) {
+                        console.error('Unclosed bold at position', currentIndex);
+                        break;
+                    }
+                    const boldContent = content.slice(currentIndex + 2, endIndex);
+                    const strong = document.createElement('strong');
+                    strong.textContent = boldContent;
+                    element.appendChild(strong);
+                    currentIndex = endIndex + 2;
+                } else {
+                    // Plain text
+                    const nextSpecialChar = Math.min(
+                        content.indexOf('$$', currentIndex) === -1 ? Infinity : content.indexOf('$$', currentIndex),
+                        content.indexOf('**', currentIndex) === -1 ? Infinity : content.indexOf('**', currentIndex)
+                    );
+                    const textContent = content.slice(currentIndex, nextSpecialChar === Infinity ? undefined : nextSpecialChar);
+                    const lines = textContent.split('\n');
+                    lines.forEach((line, index) => {
+                        element.appendChild(document.createTextNode(line));
+                        if (index < lines.length - 1) {
+                            element.appendChild(document.createElement('br'));
+                        }
+                    });
+                    currentIndex = nextSpecialChar === Infinity ? content.length : nextSpecialChar;
+                }
+            }
+        }
+
+
+        function handleNodeHover(event) {
+            const target = event.target;
+            if (target.classList.contains('node')) {
+                const layerIndex = parseInt(target.dataset.layer);
+                const nodeIndex = parseInt(target.dataset.node);
+
+                function highlightConnection(conn) {
+                    conn.classList.add('highlighted');
+                    conn.setAttribute('stroke-width', '3');
+
+                    const strength = parseFloat(conn.dataset.strength);
+                    const gradient = parseFloat(conn.dataset.gradient);
+                    const absGradient = Math.abs(gradient);
+
+                    // conn.style.filter = `drop-shadow(0 0 3px ${color})`;
+                    if (strength >= 0) {
+                        conn.classList.add('positive');
+                        conn.classList.remove('negative');
+                    } else {
+                        conn.classList.add('negative');
+                        conn.classList.remove('positive');
+                    }
+                }
+
+                // Highlight incoming connections
+                const incomingConnections = document.querySelectorAll(`.connection[data-to="${layerIndex},${nodeIndex}"]`);
+                incomingConnections.forEach(highlightConnection);
+
+                // Highlight outgoing connections
+                const outgoingConnections = document.querySelectorAll(`.connection[data-from="${layerIndex},${nodeIndex}"]`);
+                outgoingConnections.forEach(highlightConnection);
+            }
+        }
+
+
+        function resetConnectionHighlights() {
+            // used for clearing node hover and update hover events
+            // if (selectedElement) return; // Don't reset if there's a selected element
+            const highlightedConnections = document.querySelectorAll('.connection.highlighted');
+            highlightedConnections.forEach(conn => {
+                conn.classList.remove('highlighted', 'positive', 'negative');
+                conn.setAttribute('stroke-width', '1');
+                conn.style.filter = '';
+            });
+        }
+
+
+        function resetConnectionAppearance(event) {
+            const target = event.target;
+            if (target.classList.contains('connection')) {
+                target.style.filter = '';
+                target.classList.remove('highlighted', 'positive', 'negative');
+            }
+        }
+
+
+        function updateConnectionOpacity() {
+            const connections = document.querySelectorAll('.connection');
+            connections.forEach(connection => {
+                const strength = Math.abs(parseFloat(connection.dataset.strength));
+                // const maxStrength = parseFloat(connection.dataset.maxStrength);
+                const opacity = strength / maxStrength;
+                connection.setAttribute('stroke-opacity', opacity);
+            });
+        }
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Animations
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function animateForwardPass() {
+            const stepDurationMs = 250;
+
+            const animationLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            svg.appendChild(animationLayer);
+
+            function isYNode(layerIndex) {
+                return layerIndex === layerDims.length;
+            }
+
+            function animateLayer(layerIndex) {
+                if (layerIndex > layerDims.length) {
+                    svg.removeChild(animationLayer);
+                    return;
+                }
+
+                const nodes = document.querySelectorAll(`.node[data-layer="${layerIndex}"]`);
+                nodes.forEach(node => {
+                    const animatedNode = node.cloneNode(true);
+                    if (isYNode(layerIndex)) {
+                        animatedNode.setAttribute('r', '7');  // Smaller radius
+                        animatedNode.setAttribute('fill', '#666');  // dark navy blue color
+                    } else {
+                        animatedNode.setAttribute('r', '10');
+                        animatedNode.setAttribute('fill', '#ffb650');
+                    }
+                    animatedNode.setAttribute('fill-opacity', '0');
+                    animationLayer.appendChild(animatedNode);
+
+                    anime({
+                        targets: animatedNode,
+                        fillOpacity: 0.7,
+                        duration: stepDurationMs,
+                        easing: 'easeInOutQuad'
+                    });
+                });
+
+                if (layerIndex < layerDims.length) {
+                    const connections = document.querySelectorAll(`.connection[data-from^="${layerIndex},"]`);
+                    connections.forEach(conn => {
+                        const strength = parseFloat(conn.dataset.strength);
+                        const absStrength = Math.abs(strength);
+                        const opacity = absStrength / maxStrength;
+                        const color = strength >= 0 ? 'rgb(100, 100, 255)' : 'rgb(255, 100, 100)';
+
+                        const animatedConn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        animatedConn.setAttribute('x1', conn.getAttribute('x1'));
+                        animatedConn.setAttribute('y1', conn.getAttribute('y1'));
+                        animatedConn.setAttribute('x2', conn.getAttribute('x1'));
+                        animatedConn.setAttribute('y2', conn.getAttribute('y1'));
+                        animatedConn.setAttribute('stroke', color);
+                        animatedConn.setAttribute('stroke-opacity', opacity);
+                        animatedConn.setAttribute('stroke-width', '3');
+
+                        // Add dashed line for connection between y_hat and y
+                        if (layerIndex === layerDims.length - 1) {
+                            animatedConn.setAttribute('stroke-dasharray', '5,5');
+                        }
+
+                        animationLayer.appendChild(animatedConn);
+
+                        anime({
+                            targets: animatedConn,
+                            x2: conn.getAttribute('x2'),
+                            y2: conn.getAttribute('y2'),
+                            duration: stepDurationMs,
+                            easing: 'easeInOutQuad'
+                        });
+                    });
+                }
+
+                setTimeout(() => animateLayer(layerIndex + 1), stepDurationMs);
+            }
+
+            animateLayer(0);
+        }
+
+        function animateBackwardPass() {
+            const stepDurationMs = 250;
+
+            const animationLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            svg.appendChild(animationLayer);
+
+
+            function isTerminalNode(layerIndex, nodeIndex) {
+                // X nodes (input layer)
+                if (layerIndex === 0) return true;
+
+                // Bias nodes (last node in each layer except the output layer)
+                if (layerIndex < layerDims.length - 1 && nodeIndex === layerDims[layerIndex]) return true;
+
+                return false;
+            }
+
+            function animateLayer(layerIndex) {
+                if (layerIndex < 0) {
+                    svg.removeChild(animationLayer);
+                    return;
+                }
+
+                const nodes = document.querySelectorAll(`.node[data-layer="${layerIndex}"]`);
+                nodes.forEach((node, nodeIndex) => {
+                    const animatedNode = node.cloneNode(true);
+                    if (isTerminalNode(layerIndex, nodeIndex)) {
+                        animatedNode.setAttribute('r', '7');  // Smaller radius
+                        animatedNode.setAttribute('fill', '#666');  // dark navy blue color
+                    } else {
+                        animatedNode.setAttribute('r', '10');
+                        animatedNode.setAttribute('fill', '#ffb650');
+                    }
+                    animatedNode.setAttribute('fill-opacity', '0');
+                    animationLayer.appendChild(animatedNode);
+
+                    anime({
+                        targets: animatedNode,
+                        fillOpacity: 0.7,
+                        duration: stepDurationMs,
+                        easing: 'easeInOutQuad'
+                    });
+                });
+
+                if (layerIndex > 0) {
+                    const connections = document.querySelectorAll(`.connection[data-to^="${layerIndex},"]`);
+                    connections.forEach(conn => {
+                        const gradient = parseFloat(conn.dataset.gradient);
+                        const absGradient = Math.abs(gradient);
+                        const opacity = absGradient / maxGradient;
+                        const color = gradient >= 0 ? 'rgb(100, 100, 255)' : 'rgb(255, 100, 100)';
+
+                        const animatedConn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        animatedConn.setAttribute('x1', conn.getAttribute('x2'));
+                        animatedConn.setAttribute('y1', conn.getAttribute('y2'));
+                        animatedConn.setAttribute('x2', conn.getAttribute('x2'));
+                        animatedConn.setAttribute('y2', conn.getAttribute('y2'));
+                        animatedConn.setAttribute('stroke', color);
+                        animatedConn.setAttribute('stroke-opacity', opacity);
+                        animatedConn.setAttribute('stroke-width', '3');
+
+                        // Add dashed line for connection between y and y_hat
+                        if (layerIndex === layerDims.length) {
+                            animatedConn.setAttribute('stroke-dasharray', '5,5');
+                        }
+
+                        animationLayer.appendChild(animatedConn);
+
+                        anime({
+                            targets: animatedConn,
+                            x2: conn.getAttribute('x1'),
+                            y2: conn.getAttribute('y1'),
+                            duration: stepDurationMs,
+                            easing: 'easeInOutQuad'
+                        });
+                    });
+                }
+
+                setTimeout(() => animateLayer(layerIndex - 1), stepDurationMs);
+            }
+
+            animateLayer(layerDims.length);
+        }
+
+
+        function animateShockWeights() {
+            setMaxes();
+            const connections = document.querySelectorAll('.connection:not([data-to^="' + layerDims.length + ',"])');
+
+            connections.forEach(connection => {
+                if (connection.dataset.strength) {
+                    const newStrength = parseFloat(connection.dataset.strength);
+
+                    // Calculate new opacity
+                    const opacity = Math.abs(newStrength) / maxStrength;
+
+                    // Animate jitter effect and opacity change
+                    connection.animate([
+                        { transform: 'translateY(0px)' },
+                        { transform: 'translateY(-5px)' },
+                        { transform: 'translateY(5px)' },
+                        { transform: 'translateY(0px)' }
+                    ], {
+                        duration: 200,
+                        iterations: 1,
+                        fill: 'forwards'
+                    });
+
+                    // Update the stroke-opacity attribute after animation
+                    setTimeout(() => {
+                        connection.setAttribute('stroke-opacity', opacity);
+                    }, 200);
+                }
+
+            });
+            updatedStrengthViz();
+            updateConnectionOpacity();
+        }
+
+
+        function resetTrainingDisplay() {
+            document.getElementById('epoch-display').textContent = `Epoch: N/A`;
+            document.getElementById('train-loss-value').textContent = 'N/A';
+            document.getElementById('val-loss-value').textContent = 'N/A';
+        }
+
+
+        function updateTrainingDisplay(epochVal, trainLoss, valLoss) {
+            document.getElementById('epoch-display').textContent = `Epoch: ${epochVal}`;
+            if (trainLoss !== null) {
+                document.getElementById('train-loss-value').textContent = trainLoss.toFixed(20);
+            }
+            if (valLoss !== null) {
+                document.getElementById('val-loss-value').textContent = valLoss.toFixed(20);
+            }
+        }
+
+
+        function logMessage(message) {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML += `<p>${message}</p>`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Random Number Generation
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        class RNG {
+            constructor(seed) {
+                this.state = BigInt(seed);
+            }
+
+            random_u32() {
+                // xorshift rng: https://en.wikipedia.org/wiki/Xorshift#xorshift.2A
+                this.state = BigInt.asUintN(64, this.state);
+                this.state ^= (this.state >> 12n) & 0xFFFFFFFFFFFFFFFFn;
+                this.state ^= (this.state << 25n) & 0xFFFFFFFFFFFFFFFFn;
+                this.state ^= (this.state >> 27n) & 0xFFFFFFFFFFFFFFFFn;
+
+                return Number((this.state * 0x2545F4914F6CDD1Dn >> 32n) & 0xFFFFFFFFn);
+            }
+
+            random() {
+                // random Number in [0, 1)
+                return (this.random_u32() >>> 8) / 16777216.0;
+            }
+
+            uniform(a = 0.0, b = 1.0) {
+                // random Number in [a, b)
+                return a + (b - a) * this.random();
+            }
+
+            normal(mean = 0, stddev = 1) {
+                let u, v, s;
+                do {
+                    u = this.random() * 2 - 1;
+                    v = this.random() * 2 - 1;
+                    s = u * u + v * v;
+                } while (s >= 1 || s == 0);
+
+                s = Math.sqrt(-2.0 * Math.log(s) / s);
+                return mean + stddev * u * s;
+            }
+        }
+
+        function gen_data(random, n = 200) {
+            let pts = [];
+
+            for (let i = 0; i < n; i++) {
+                let classType = Math.floor(random.random() * 3);
+                let x, y;
+
+                // smiley
+                switch (classType) {
+                    case 0:
+                        x = random.normal(-1, 0.25);
+                        y = random.normal(1, 0.7) * -Math.sin(x);
+                        break;
+                    case 1:
+                        x = random.normal(1, 0.25);
+                        y = random.normal(1, 0.7) * Math.sin(x);
+                        break;
+                    case 2:
+                        x = random.normal(0, 0.5);
+                        y = random.normal(-1, 0.5) * 0.5 * Math.cos(x) - 0.3;
+                        break;
+                }
+
+                pts.push([[x, y], classType]);
+            }
+
+            // create train/val/test splits of the data (80%, 10%, 10%)
+            let tr = pts.slice(0, Math.floor(0.8 * n));
+            let val = pts.slice(Math.floor(0.8 * n), Math.floor(0.9 * n));
+            let te = pts.slice(Math.floor(0.9 * n));
+            return [tr, val, te];
+        }
+
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Micrograd MLP (visual update)
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        function zeroGradViz() {
+            const connections = document.querySelectorAll('.connection');
+            connections.forEach(connection => {
+                if (connection.dataset.gradient) {
+                    connection.dataset.gradient = '0';
+                }
+                connection.style.filter = ''; // Reset any gradient-based styling
+            });
+        }
+
+
+        function updatedGradViz() {
+            setMaxes(); // need updated maxGradient
+            const connections = document.querySelectorAll('.connection');
+            let layerParams = [];
+            let layerSizes = [];
+            mlp.layers.forEach(layer => {
+                layerParams.push(layer.parameters());
+                layerSizes.push(layer.neurons[0].parameters().length)
+            });
+            connections.forEach(connection => {
+                // fromLayer determines the first index into layerParams. 
+                // toNode and fromNode acts as a pointer. `n_elements_previous_layer * toNode + fromNode` gives the index
+                const [fromLayer, fromNode] = connection.dataset.from.split(',').map(val => parseInt(val, 10));
+                const [toLayer, toNode] = connection.dataset.to.split(',').map(val => parseInt(val, 10));
+
+                if (fromLayer < layerParams.length) {
+                    const gradient = layerParams[fromLayer][layerSizes[fromLayer] * toNode + fromNode].grad;
+                    connection.dataset.gradient = gradient.toFixed(4);
+                }
+            });
+        }
+
+        function updatedStrengthViz() {
+            setMaxes(); // need updated maxStrength
+            const connections = document.querySelectorAll('.connection');
+            let layerParams = [];
+            let layerSizes = [];
+            mlp.layers.forEach(layer => {
+                layerParams.push(layer.parameters());
+                layerSizes.push(layer.neurons[0].parameters().length)
+            });
+            connections.forEach(connection => {
+                // fromLayer determines the first index into layerParams. 
+                // toNode and fromNode acts as a pointer. `n_elements_previous_layer * toNode + fromNode` gives the index
+                const [fromLayer, fromNode] = connection.dataset.from.split(',').map(val => parseInt(val, 10));
+                const [toLayer, toNode] = connection.dataset.to.split(',').map(val => parseInt(val, 10));
+
+                if (fromLayer < layerParams.length) {
+                    const weight = layerParams[fromLayer][layerSizes[fromLayer] * toNode + fromNode].data;
+                    connection.dataset.strength = weight.toFixed(4);
+                }
+            });
+            updateConnectionOpacity();
+        }
+
+        function updateFwdBackUpButton(button, stage) {
+            switch (stage) {
+                case 0:
+                    button.textContent = '→';
+                    break;
+                case 1:
+                    button.textContent = '←';
+                    break;
+                case 2:
+                    button.textContent = '↑';
+                    break;
+            }
+        }
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Micrograd MLP
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        class Value {
+            // stores a single scalar value and its gradient
+            constructor(data, _children = [], _op = '') {
+                this.data = data;
+                this.grad = 0;
+                this._backward = () => { };
+                this._prev = new Set(_children);
+                this._op = _op;
+            }
+
+            add(other) {
+                other = other instanceof Value ? other : new Value(other);
+                const out = new Value(this.data + other.data, [this, other], '+');
+                out._backward = () => {
+                    this.grad += out.grad;
+                    other.grad += out.grad;
+                };
+
+                return out;
+            }
+
+            mul(other) {
+                other = other instanceof Value ? other : new Value(other);
+                const out = new Value(this.data * other.data, [this, other], '*');
+                out._backward = () => {
+                    this.grad += other.data * out.grad;
+                    other.grad += this.data * out.grad;
+                };
+
+                return out;
+            }
+
+            pow(other) {
+                if (typeof other !== 'number') throw new Error("only supporting number powers for now");
+                const out = new Value(Math.pow(this.data, other), [this], `**${other}`);
+
+                out._backward = () => {
+                    this.grad += other * Math.pow(this.data, other - 1) * out.grad;
+                };
+
+                return out;
+            }
+
+            relu() {
+                const out = new Value(this.data < 0 ? 0 : this.data, [this], 'ReLU');
+                out._backward = () => {
+                    this.grad += (out.data > 0) * out.grad;
+                };
+
+                return out;
+            }
+
+            tanh() {
+                const x = Math.tanh(this.data);
+                const out = new Value(x, [this], 'tanh');
+                out._backward = () => {
+                    this.grad += (1 - x * x) * out.grad;
+                };
+
+                return out;
+            }
+
+            exp() {
+                const x = Math.exp(this.data);
+                const out = new Value(x, [this], 'exp');
+                out._backward = () => {
+                    this.grad += x * out.grad;
+                };
+
+                return out;
+            }
+
+            log() {
+                const out = new Value(Math.log(this.data), [this], 'log');
+                out._backward = () => {
+                    this.grad += (1 / this.data) * out.grad;
+                };
+
+                return out;
+            }
+
+            backward() {
+                const topo = [];
+                const visited = new Set();
+
+                function buildTopo(v) {
+                    if (!visited.has(v)) {
+                        visited.add(v);
+                        for (const child of v._prev) {
+                            buildTopo(child);
+                        }
+                        topo.push(v);
+                    }
+                }
+
+                buildTopo(this);
+
+                this.grad = 1;
+                for (const v of topo.reverse()) {
+                    v._backward();
+                }
+            }
+
+            neg() { return this.mul(-1); }
+            sub(other) { return this.add(other instanceof Value ? other.neg() : new Value(-other)); }
+            div(other) { return this.mul(other instanceof Value ? other.pow(-1) : new Value(Math.pow(other, -1))); }
+
+            toString() {
+                return `Value(data=${this.data}, grad=${this.grad})`;
+            }
+        }
+
+
+        class Module {
+            zeroGrad() {
+                for (const p of this.parameters()) {
+                    p.grad = 0;
+                }
+                zeroGradViz(); // update connection gradients on SVG
+            }
+
+            parameters() {
+                return [];
+            }
+        }
+
+        class Neuron extends Module {
+            constructor(nin, kwargs) {
+                super();
+                this.w = Array(nin).fill().map(() => new Value(random.uniform(-1, 1) * Math.pow(nin, -0.5)));
+                this.b = new Value(0);
+
+                this.nonlin = kwargs.nonlin !== undefined ? kwargs.nonlin : true;
+            }
+
+            call(x) {
+                const act = this.w.reduce((sum, wi, i) => sum.add(wi.mul(x[i])), this.b);
+                return this.nonlin ? act.tanh() : act;
+            }
+
+            parameters() {
+                return [...this.w, this.b];
+            }
+
+            toString() {
+                return `${this.nonlin ? 'TanH' : 'Linear'}Neuron(${this.w.length})`;
+            }
+        }
+
+        class Layer extends Module {
+            constructor(nin, nout, kwargs = {}) {
+                super();
+                this.neurons = Array(nout).fill().map(() => new Neuron(nin, kwargs));
+            }
+
+            call(x) {
+                const out = this.neurons.map(n => n.call(x));
+                return out;
+            }
+
+            parameters() {
+                return this.neurons.flatMap(n => n.parameters());
+            }
+
+            toString() {
+                return `Layer of [${this.neurons.join(', ')}]`;
+            }
+        }
+
+        class MLP extends Module {
+            constructor(nin, nouts) {
+                super();
+                const sz = [nin, ...nouts];
+                this.layers = sz.slice(0, -1).map((s, i) => new Layer(s, sz[i + 1], { nonlin: i !== nouts.length - 1 }));
+
+            }
+
+            call(x) {
+                for (const layer of this.layers) {
+                    x = layer.call(x);
+                }
+                return x
+            }
+
+            parameters() {
+                return this.layers.flatMap(l => l.parameters());
+            }
+
+            toString() {
+                return `MLP of [${this.layers.join(', ')}]`;
+            }
+
+            shockWeights() {
+                for (const layer of this.layers) {
+                    for (const neuron of layer.neurons) {
+                        for (const w of neuron.w) {
+                            const noise = random.uniform(-shockNoiseScale, shockNoiseScale);
+                            w.data += noise;
+                        }
+                        const bias_noise = random.uniform(-shockNoiseScale, shockNoiseScale);
+                        neuron.b.data += bias_noise;
+                    }
+                }
+            }
+        }
+
+        function crossEntropy(logits, target) {
+            // subtract the max for numerical stability (avoids overflow)
+            const maxVal = Math.max(...logits.map(v => v.data));
+            const shiftedLogits = logits.map(v => v.sub(maxVal));
+            // 1) evaluate elementwise e^x
+            const ex = shiftedLogits.map(x => x.exp());
+            // 2) compute the sum of the above
+            const denom = ex.reduce((sum, x) => sum.add(x));
+            // 3) normalize by the sum to get probabilities
+            const probs = ex.map(x => x.div(denom));
+            // 4) log the probabilities at target
+            const logp = probs[target].log();
+            // 5) the negative log likelihood loss (invert so we get a loss - lower is better)
+            const nll = logp.neg();
+            return nll;
+        }
+
+        // evaluation utility to compute the loss on a given split of the dataset
+        function evalSplit(model, split) {
+            // evaluate the loss of a split
+            let loss = new Value(0);
+            // track for plotting
+            logitsVal = [];
+            predsVal = [];
+            for (const [x, y] of split) {
+                const logits = model.call([new Value(x[0]), new Value(x[1])]);
+                logitsVal.push(logits);
+                predsVal.push(argmax(logits.map(v => v.data)));
+                loss = loss.add(crossEntropy(logits, y));
+            }
+            loss = loss.mul(1.0 / split.length); // normalize the loss
+            return loss.data;
+        }
+
+        function trainForward() {
+            // forward pass
+            if (epoch % 10 === 0) {
+                const val_loss = evalSplit(mlp, val_split);
+                updateTrainingDisplay(epoch, null, val_loss);
+            }
+
+            loss = new Value(0);
+            // track for plotting
+            logitsTrain = [];
+            predsTrain = [];
+            for (const [x, y] of train_split) {
+                const logits = mlp.call([new Value(x[0]), new Value(x[1])]);
+                logitsTrain.push(logits);
+                predsTrain.push(argmax(logits.map(v => v.data)));
+                loss = loss.add(crossEntropy(logits, y));
+            }
+            loss = loss.mul(1.0 / train_split.length);
+            updateTrainingDisplay(epoch, loss.data, null);
+
+            updateDataPlot();
+        }
+
+        function trainBackward() {
+            // backward pass (deposit the gradients)
+            loss.backward();
+            updatedGradViz();
+        }
+
+        function trainUpdate() {
+            // update with AdamW
+            for (const p of mlp.parameters()) {
+                p.m = beta1 * p.m + (1 - beta1) * p.grad;
+                p.v = beta2 * p.v + (1 - beta2) * Math.pow(p.grad, 2);
+                const m_hat = p.m / (1 - Math.pow(beta1, epoch + 1));
+                const v_hat = p.v / (1 - Math.pow(beta2, epoch + 1));
+                p.data -= learning_rate * (m_hat / (Math.sqrt(v_hat) + eps) + weight_decay * p.data);
+            }
+            updatedStrengthViz();
+            mlp.zeroGrad();
+            updateTrainingDisplay(epoch, loss.data, null);
+
+            epoch++;
+        }
+
+        function trainModelStep(stage, fullStep = false) {
+            if (!mlp) {
+                console.error("MLP not initialized");
+                return;
+            }
+
+            if (fullStep) {
+                resetCurrentTrainingStage();
+                trainForward();
+                trainBackward();
+                trainUpdate();
+            } else {
+                // only animimate forward and backward passes on partial steps
+                switch (stage) {
+                    case 0: // Forward pass
+                        trainForward();
+                        animateForwardPass();
+                        break;
+
+                    case 1: // Backward pass
+                        trainBackward();
+                        animateBackwardPass();
+                        break;
+                    case 2: // Update
+                        trainUpdate();
+                        break;
+                }
+                currentTrainingStage = (stage + 1) % 3;
+                updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
+            }
+        }
+
+        function trainModel(state) {
+            function trainingLoop() {
+                if (!isRunningOptimization) return;
+
+                trainModelStep(state, true);
+
+                if (currentTrainingStage === 0) {
+                    // We've completed a full cycle, request the next frame
+                    requestAnimationFrame(trainingLoop);
+                } else {
+                    // We're in the middle of a cycle, continue immediately
+                    trainingLoop();
+                }
+            }
+            trainingLoop();
+        }
+
+        function resetCurrentTrainingStage() {
+            // in case we are partway through a cycle, reset stage and grad
+            currentTrainingStage = 0;
+            mlp.zeroGrad();
+            updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
+        }
+
+        function argmax(array) {
+            if (array.length === 0) {
+                return -1; // Return -1 for empty array
+            }
+            const max = Math.max(...array);
+            return array.indexOf(max);
+        }
+
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Add event listeners and draw
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        const random = new RNG(42);
+
+        svg.addEventListener('click', function (event) {
+            showInfo(event);
+        });
+
+        function addEventListeners(element) {
+            element.addEventListener('mouseover', showInfo);
+            element.addEventListener('mouseout', clearInfo);
+            element.addEventListener('click', showInfo);
+        }
+
+        function addReportingContainerListeners() {
+            document.getElementById('epoch-display').addEventListener('mouseover', showReportingInfo);
+            document.getElementById('epoch-display').addEventListener('mouseout', clearInfo);
+
+            document.getElementById('train-loss-display').addEventListener('mouseover', showReportingInfo);
+            document.getElementById('train-loss-display').addEventListener('mouseout', clearInfo);
+
+            document.getElementById('val-loss-display').addEventListener('mouseover', showReportingInfo);
+            document.getElementById('val-loss-display').addEventListener('mouseout', clearInfo);
+        }
+
+        document.querySelectorAll('.node, .connection, .layer, .latex-label').forEach(addEventListeners);
+
+        btnPlayPause.addEventListener('click', function (event) {
+            isRunningOptimization = !isRunningOptimization;
+            this.querySelector('span').textContent = isRunningOptimization ? '⏸' : '▶';
+
+            if (isRunningOptimization) {
+                trainModel(currentTrainingStage);
+            }
+
+            // const buttonsDisableRunning = ['btn-reset-mlp', 'btn-shock-weights', 'btn-step', 'btn-fwd-backprop-update'];
+            const buttonsDisableRunning = ['btn-reset-mlp', 'btn-step', 'btn-fwd-backprop-update'];
+            buttonsDisableRunning.forEach(id => {
+                const button = document.getElementById(id);
+                button.disabled = isRunningOptimization;
+            });
+            showInfo(event);
+        });
+
+        btnStep.addEventListener('click', function () {
+            trainModelStep(currentTrainingStage, true);
+            updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
+            showInfo({ target: this });
+        });
+
+        btnFwdBackUp.addEventListener('click', function () {
+            // TODO btn event handler for update
+            trainModelStep(currentTrainingStage, false);
+            updateFwdBackUpButton(this, currentTrainingStage);
+            showInfo({ target: this });
+        });
+
+        btnResetMLP.addEventListener('click', function () {
+            resetMLP();
+        });
+
+        document.getElementById('btn-shock-weights').addEventListener('click', function () {
+            mlp.shockWeights();
+            animateShockWeights();
+        });
+
+        // Add mouseover and mouseout event listeners for the new buttons
+        ['btn-reset-mlp', 'btn-shock-weights', 'btn-step', 'btn-fwd-backprop-update', 'btn-play-pause'].forEach(id => {
+            const button = document.getElementById(id);
+            button.addEventListener('mouseover', showInfo);
+            button.addEventListener('mouseout', clearInfo);
+            if (id == 'btn-fwd-backprop-update') {
+                button.addEventListener('mouseout', resetConnectionHighlights);
+            }
+        });
+
+        document.getElementById('layerDimInput').addEventListener('mouseover', showInfo);
+        document.getElementById('layerDimInput').addEventListener('mouseout', clearInfo);
+        document.getElementById('btn-edit-dims').addEventListener('mouseover', showInfo);
+        document.getElementById('btn-edit-dims').addEventListener('mouseout', clearInfo);
+
+        window.onload = function () {
+            document.getElementById('layerDimInput').value = initialHidden;
+            initializeD3Plot();
+            resetData();
+            resetMLP();
+            addReportingContainerListeners();
+        };
+
+    </script>
+</body>
+
+</html>
