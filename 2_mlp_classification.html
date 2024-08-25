@@ -60,6 +60,8 @@
 
         #controls {
             padding: 0 20px;
+            display: flex;
+            justify-content: center;
         }
 
         #bottom-right-container {
@@ -93,12 +95,20 @@
             border: 1px solid #ccc;
         }
 
+        .layer-dim-span {
+            margin-top: 5px;
+            justify-content: center;
+            font-size: 16px;
+        }
+
         #layerDimInput {
+            height: 26px;
             width: 75px;
             font-size: 16px;
             font-weight: 500;
             border: 0;
-            background-color: #dbf4ff33;
+            margin: 0 4px;
+            background-color: rgb(240, 240, 249);
         }
 
         #layerDimInput:hover {
@@ -226,9 +236,7 @@
             margin-top: 30px;
         }
 
-        #data-plot {
-            
-        }
+        /* #data-plot {} */
 
         .data-point {
             stroke-width: 2;
@@ -302,9 +310,9 @@
             </div>
             <div id="bottom-right-container">
                 <div id="controls">
-                    <span>[2, </span>
+                    <span class="layer-dim-span">[2, </span>
                     <input type="text" id="layerDimInput">
-                    <span> 3]</span>
+                    <span class="layer-dim-span"> 3]</span>
                     <button id="btn-edit-dims" onclick="updateNetwork()">Edit hidden layer dimensions</button>
                 </div>
                 <div class="container">
@@ -831,7 +839,11 @@
                 .enter()
                 .append("g")
                 .attr("class", d => `data-point ${predictions[dataPoints.indexOf(d)] === d[1] ? 'hit' : 'miss'} label-${d[1]} ${isTrainingSet ? 'train' : 'val'}`)
-                .attr("transform", d => `translate(${x(d[0][0])},${y(d[0][1])})`)
+                .attr("transform", d => {
+                    const cx = currentTransform.applyX(x(d[0][0]));
+                    const cy = currentTransform.applyY(y(d[0][1]));
+                    return `translate(${cx},${cy})`;
+                })
                 .on("mouseover", (event, d) => {
                     showDataPointInfo(event, d);
                 })
@@ -916,11 +928,11 @@
             } else if (target.id === 'btn-reset-mlp') {
                 content = "Reset the network parameters to randomly initialized values based on the Uniform Xavier initialization.";
             } else if (target.id === 'btn-shock-weights') {
-                content = `\"Shock\" the weights: perturb the weight parameters by adding a small amount of uniform random noise between $$[-${shockNoiseScale}, ${shockNoiseScale}]$$.`;
+                content = `Add a small amount of uniform random noise between $$[-${shockNoiseScale}, ${shockNoiseScale}]$$ to the weight parameters.`;
             } else if (target.id === 'btn-step') {
                 content = "Run one full epoch of the training loop and show network animations illustrating the forward pass, backpropagation of gradients, and update of the weights.";
             } else if (target.id === 'layerDimInput') {
-                content = "Enter the dimensions of hidden layers, separated by commas.\n\nInput must be comma-separated integers. Maximum " + MAX_N_LAYERS_HIDDEN + " hidden layers and " + MAX_LAYER_SIZE + " neurons per layer.\n\nFor example, $$16,8$$ creates two hidden layers with 16 and 8 neurons respectively.";
+                content = "Enter the dimensions of hidden layers, separated by commas.\n\nInput must be comma-separated integers. Maximum " + MAX_N_LAYERS_HIDDEN + " hidden layers and " + MAX_LAYER_SIZE + " neurons per layer.\n\nFor example, $$12,4$$ creates two hidden layers with 12 and 4 neurons respectively.";
             } else if (target.id === 'btn-edit-dims') {
                 content = "Initialize a new network with the given dimensions.\n\nThis will reset all weights and biases to new random values based on the specified layer structure and the Uniform Xavier Initialization.";
             } else if (target.classList.contains('node')) {
@@ -930,13 +942,13 @@
                 if (isBiasNode) {
                     content = `Identity node representing the static number $$1$$.\n\nIt provides a way to add the bias term as part of the matrix multiplication, instead performing a seperate addition.`;
                 } else if (layerIndex === 0) {
-                    content = `Input feature at index $$${nodeIndex}$$`;
+                    content = `$$ x_{${nodeIndex}} $$: input feature at index $$${nodeIndex}$$`;
                 } else if (layerIndex === layerDims.length - 1) {
                     content = `Output feature at index $$${nodeIndex}$$ for $$\\hat{y}$$`;
                 } else if (layerIndex === layerDims.length) {
                     content = `Output feature at index $$${nodeIndex}$$ for $$y$$`;
                 } else {
-                    content = `Node in fully connected layer ${layerIndex}, index ${nodeIndex}`;
+                    content = `Artifical neuron in hidden layer ${layerIndex}, index ${nodeIndex}`;
                 }
             } else if (target.classList.contains('connection')) {
                 const [fromLayer, fromNode] = target.dataset.from.split(',');
@@ -970,12 +982,12 @@
                         target.classList.add('negative');
                         target.classList.remove('positive');
                     }
-                    if (fromNodeIndex === layerDims[fromLayerIndex] + 1) {
-                        content = `Bias term for node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                    if (fromNodeIndex === layerDims[fromLayerIndex]) {
+                        content = `Bias term for neuron $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
                     } else if (fromNodeIndex === 0) {
-                        content = `Connection from node $$${fromNodeIndex}$$ in the input layer to node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                        content = `Connection from neuron $$${fromNodeIndex}$$ in the input layer to neuron $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
                     } else {
-                        content = `Connection from node $$${fromNodeIndex}$$ in layer $$${fromLayerIndex}$$ to node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                        content = `Connection from neuron $$${fromNodeIndex}$$ in layer $$${fromLayerIndex}$$ to neuron $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
                     }
                     content += `\nGradient: $$${gradient.toFixed(4)}$$`;
 
@@ -990,7 +1002,7 @@
                 } else if (layerIndex === layerDims.length) {
                     content = `True values $$y$$, containing $$${layerDims[layerDims.length - 1]}$$ features`;
                 } else {
-                    content = `Fully connected layer ${layerIndex}, containing $$${layerDims[layerIndex]}$$ nodes`;
+                    content = `Hidden layer ${layerIndex}, containing $$${layerDims[layerIndex]}$$ artificial neurons`;
                 }
             } else if (target.closest('.latex-label')) {
                 const latexLabel = target.closest('.latex-label');
@@ -1036,17 +1048,16 @@
             const isHit = pointData.isHit
             const dataset = pointData.set
 
-            // TODO include above info if nexessary
-            const target = event.target;
+            // const target = event.target;
             const isTraining = dataset === "Training";
             const calculationFrequency = isTraining
                 ? "Updated every epoch"
                 : `Evaluated every ${valInterval} epochs`;
 
             const content = `**${dataset}** Data Point (${calculationFrequency})\n
-                Coordinates: (${xValue}, ${yValue})
+                $$x_{0}, x_{1}$$ coordinates: $$(${xValue}, ${yValue})$$\n
                 Actual Label: ${actualLabel}
-                Predicted Label: ${predictedLabel}\n
+                Predicted Label: ${predictedLabel}
                 ${isHit === true ? '**Correct** Prediction' : '**INCORRECT** Prediction'}`;
             renderInfoContent(infoElement, content);
         }
@@ -1579,7 +1590,7 @@
                 let classType = Math.floor(random.random() * 3);
                 let x, y;
 
-                // smiley
+                // rorschach smiley
                 switch (classType) {
                     case 0:
                         x = random.normal(-1, 0.25);
