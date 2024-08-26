@@ -352,7 +352,6 @@
     <script>
         // globals
         let mlp;
-        const layerDims = [1,1];
         let train_split, val_split, test_split;
         let predsTrain, predsVal;
 
@@ -423,7 +422,7 @@
 
         function getLayerColor(layerIndex) {
             if (layerIndex === 0) return layerColors.x;
-            if (layerIndex === layerDims.length) return layerColors.y;
+            if (layerIndex === nLayers) return layerColors.y;
             return layerColors.fc;
         }
 
@@ -477,17 +476,17 @@
                 Math.max(max[1], Math.abs(v.grad))
             ], [-Infinity, -Infinity]);
         }
-
+        
+        const nLayers = 1;
         function drawNetwork() {
             svg.innerHTML = '';
-
-            const layerGap = svgWidth / (layerDims.length + 2);
+            const layerGap = svgWidth / (nLayers + 2);
             setMaxes(); // get max strength and gradient of network for drawing
 
             // draw layer rectangles, nodes, and connections for each layer
             const layerGroupWidth = 30;
-            for (let layerIndex = 0; layerIndex < layerDims.length; layerIndex++) {
-                const nodeCountNoBias = layerDims[layerIndex]
+            for (let layerIndex = 0; layerIndex < nLayers; layerIndex++) {
+                const nodeCountNoBias = 1
 
                 const svgX = (layerIndex + 1) * layerGap;
                 const layerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -508,7 +507,7 @@
                 layerGroup.addEventListener('mouseout', clearInfo);
                 // layerGroup.addEventListener('click', showInfo);
 
-                const totalNodes = layerIndex < layerDims.length - 1 ? nodeCountNoBias + 1 : nodeCountNoBias;
+                const totalNodes = layerIndex < nLayers - 1 ? nodeCountNoBias + 1 : nodeCountNoBias;
 
                 for (let i = 0; i < nodeCountNoBias; i++) {
                     const svgY = (i + 1) * (svgHeight / (totalNodes + 1));
@@ -516,7 +515,7 @@
                 }
 
                 // Add bias node for all layers except the last one
-                if (layerIndex < layerDims.length - 1) {
+                if (layerIndex < nLayers - 1) {
                     const biasY = (nodeCountNoBias + 1) * (svgHeight / (totalNodes + 1));
                     drawBiasNode(svgX, biasY, layerIndex, layerGroup);
                 }
@@ -524,16 +523,16 @@
                 svgNetwork.appendChild(layerGroup);
 
                 // Draw connections
-                if (layerIndex < layerDims.length - 1) {
+                if (layerIndex < nLayers - 1) {
                     drawConnections(layerIndex, svgX, layerGap);
                 }
             }
 
             // Draw the additional "y" layer
-            const yLayerX = (layerDims.length + 1) * layerGap;
+            const yLayerX = (nLayers + 1) * layerGap;
             const yLayerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             yLayerGroup.classList.add('layer');
-            yLayerGroup.dataset.layer = layerDims.length;
+            yLayerGroup.dataset.layer = nLayers;
 
             const yLayerRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             yLayerRect.setAttribute('x', yLayerX - layerGroupWidth / 2);
@@ -548,19 +547,19 @@
             yLayerGroup.addEventListener('mouseout', clearInfo);
             // yLayerGroup.addEventListener('click', showInfo);
 
-            const lastLayerNodeCount = layerDims[layerDims.length - 1];
+            const lastLayerNodeCount = 1;
             for (let i = 0; i < lastLayerNodeCount; i++) {
                 const svgY = (i + 1) * (svgHeight / (lastLayerNodeCount + 1));
-                drawNode(yLayerX, svgY, layerDims.length, i, yLayerGroup);
+                drawNode(yLayerX, svgY, nLayers, i, yLayerGroup);
             }
 
             svgNetwork.appendChild(yLayerGroup);
 
             // Draw connections between y_hat and y
-            drawYConnections(layerDims.length - 1, (layerDims.length) * layerGap, layerGap);
+            drawYConnections(nLayers - 1, (nLayers) * layerGap, layerGap);
 
             // Draw the curly brace and "loss" text
-            const lastLayerX = (layerDims.length + 1) * layerGap;
+            const lastLayerX = (nLayers + 1) * layerGap;
             const braceWidth = layerGroupWidth / 2;
             const topNodeY = (1) * (svgHeight / (lastLayerNodeCount + 1));
             const bottomNodeY = (lastLayerNodeCount) * (svgHeight / (lastLayerNodeCount + 1));
@@ -625,7 +624,7 @@
             for (let i = 0; i < currentLayerSize; i++) {
                 const neuron = currentLayer.neurons[i];
                 let toY = (i + 1) * (svgHeight / (currentLayerSize + 2));
-                if (layerIndex == layerDims.length - 2) {
+                if (layerIndex == nLayers - 2) {
                     // y_hat, no bias
                     toY = (i + 1) * (svgHeight / (currentLayerSize + 1));
                 }
@@ -669,7 +668,7 @@
 
 
         function drawYConnections(layerIndex, x, layerGap) {
-            const currentLayer = layerDims[layerIndex];
+            const currentLayer = 1;
 
             for (let i = 0; i < currentLayer; i++) {
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1041,13 +1040,13 @@
             } else if (target.classList.contains('node')) {
                 const layerIndex = parseInt(target.dataset.layer);
                 const nodeIndex = parseInt(target.dataset.node);
-                if (nodeIndex === layerDims[layerIndex]) {
-                    content = `Identity node representing the static number $$1$$.\n\nIt provides a way to add the bias term as part of the matrix multiplication, instead performing a seperate addition.`;
+                if (nodeIndex === layerDims[layerIndex] + 1) {
+                    content = `Indentity node (the vector $$\\mathbf{1}$$).\n\nIt provides a way to add the bias term as part of the matrix multiplication, instead of seperately.`;
                 } else if (layerIndex === 0) {
-                    content = `The input feature representing the $$ x $$ coordinate of the $$(x,y)$$ plain. When working with higher dimensional inputs of $$ \\mathbf{x} $$, there will be an input node for each feature`;
-                } else if (layerIndex === layerDims.length - 1) {
+                    content = `Input feature at index $$${nodeIndex}$$`;
+                } else if (layerIndex === nLayers - 1) {
                     content = `Output feature at index $$${nodeIndex}$$ for $$\\hat{y}$$`;
-                } else if (layerIndex === layerDims.length) {
+                } else if (layerIndex === nLayers) {
                     content = `Output feature at index $$${nodeIndex}$$ for $$y$$`;
                 } else {
                     content = `Node in fully connected layer ${layerIndex}, index ${nodeIndex}`;
@@ -1061,7 +1060,7 @@
                 const toNodeIndex = parseInt(toNode);
 
 
-                if (fromLayerIndex === layerDims.length - 1 && toLayerIndex === layerDims.length) {
+                if (fromLayerIndex === nLayers - 1 && toLayerIndex === nLayers) {
                     content = `Compare $$\\hat{y}$$ and $$y$$ at feature index ${fromNodeIndex}`;
                 } else {
                     const strength = parseFloat(target.dataset.strength);
@@ -1099,10 +1098,10 @@
                 const layerIndex = parseInt(layer.dataset.layer);
                 if (layerIndex === 0) {
                     content = `Input layer, containing $$ ${layerDims[layerIndex]}$$ features`;
-                } else if (layerIndex === layerDims.length - 1) {
+                } else if (layerIndex === nLayers - 1) {
                     content = `Output layer $$\\hat{y}$$, containing $$ ${layerDims[layerIndex]}$$ features`;
-                } else if (layerIndex === layerDims.length) {
-                    content = `True values $$y$$, containing $$${layerDims[layerDims.length - 1]}$$ features`;
+                } else if (layerIndex === nLayers) {
+                    content = `True values $$y$$, containing $$${layerDims[nLayers - 1]}$$ features`;
                 } else {
                     content = `Fully connected layer ${layerIndex}, containing $$${layerDims[layerIndex]}$$ nodes`;
                 }
@@ -1238,27 +1237,27 @@
 
 
         function addLayerLabels() {
-            const layerGap = svgWidth / (layerDims.length + 2);
+            const layerGap = svgWidth / (nLayers + 2);
 
             // Input layer label
             svgNetwork.appendChild(createLatexLabel(layerGap, svgHeight - 20, '\\mathbf{x}', LATEX_COLOR, "x"));
             // Hidden layer labels
-            for (let i = 1; i < layerDims.length - 1; i++) {
+            for (let i = 1; i < nLayers - 1; i++) {
                 svgNetwork.appendChild(createLatexLabel((i + 1) * layerGap, svgHeight - 20, `\\mathbf{x}:=\\phi(\\mathbf{W}_{${i}}\\mathbf{x})`, LATEX_COLOR, "fc" + i));
             }
             // Output layer label
-            svgNetwork.appendChild(createLatexLabel(layerDims.length * layerGap, svgHeight - 20, `\\hat{\\mathbf{y}} := \\mathbf{W}_{${layerDims.length - 1}}\\mathbf{x}`, LATEX_COLOR, "y_hat"));
+            svgNetwork.appendChild(createLatexLabel(nLayers * layerGap, svgHeight - 20, `\\hat{\\mathbf{y}} := \\mathbf{W}_{${nLayers - 1}}\\mathbf{x}`, LATEX_COLOR, "y_hat"));
             // True values label
-            svgNetwork.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, '\\mathbf{y}', LATEX_COLOR, "y"));
+            svgNetwork.appendChild(createLatexLabel((nLayers + 1) * layerGap, svgHeight - 20, '\\mathbf{y}', LATEX_COLOR, "y"));
             // Weight labels
-            for (let i = 1; i < layerDims.length; i++) {
+            for (let i = 1; i < nLayers; i++) {
                 svgNetwork.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `\\mathbf{W}_{${i}}`, LATEX_COLOR, "W" + i));
             }
         }
 
 
         function addLossLabel() {
-            const lastLayerX = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
+            const lastLayerX = (nLayers + 1) * (svgWidth / (nLayers + 2));
             const braceWidth = 15;
             svgNetwork.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{\\mathbf{y}}, \\mathbf{y})', LATEX_COLOR_LOSS, "loss"));
         }
