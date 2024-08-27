@@ -1174,18 +1174,18 @@
             const layerGap = svgWidth / (layerDims.length + 2);
 
             // Input layer label
-            svg.appendChild(createLatexLabel(layerGap, svgHeight - 20, '\\mathbf{x}', LATEX_COLOR, "x"));
+            svg.appendChild(createLatexLabel(layerGap, svgHeight - 20, 'x', LATEX_COLOR, "x"));
             // Hidden layer labels
             for (let i = 1; i < layerDims.length - 1; i++) {
-                svg.appendChild(createLatexLabel((i + 1) * layerGap, svgHeight - 20, `\\mathbf{x}:=\\phi(\\mathbf{W}_{${i}}\\mathbf{x})`, LATEX_COLOR, "fc" + i));
+                svg.appendChild(createLatexLabel((i + 1) * layerGap, svgHeight - 20, `x:=\\phi(W_{${i}}x)`, LATEX_COLOR, "fc" + i));
             }
             // Output layer label
-            svg.appendChild(createLatexLabel(layerDims.length * layerGap, svgHeight - 20, `\\hat{\\mathbf{y}} := \\mathbf{W}_{${layerDims.length - 1}}\\mathbf{x}`, LATEX_COLOR, "y_hat"));
+            svg.appendChild(createLatexLabel(layerDims.length * layerGap, svgHeight - 20, `\\hat{y} := W_{${layerDims.length - 1}}x`, LATEX_COLOR, "y_hat"));
             // True values label
-            svg.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, '\\mathbf{y}', LATEX_COLOR, "y"));
+            svg.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, 'y', LATEX_COLOR, "y"));
             // Weight labels
             for (let i = 1; i < layerDims.length; i++) {
-                svg.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `\\mathbf{W}_{${i}}`, LATEX_COLOR, "W" + i));
+                svg.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `W_{${i}}`, LATEX_COLOR, "W" + i));
             }
         }
 
@@ -1193,7 +1193,7 @@
         function addLossLabel() {
             const lastLayerX = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
             const braceWidth = 15;
-            svg.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{\\mathbf{y}}, \\mathbf{y})', LATEX_COLOR_LOSS, "loss"));
+            svg.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{y}, y)', LATEX_COLOR_LOSS, "loss"));
         }
 
 
