@@ -940,7 +940,7 @@
                 const nodeIndex = parseInt(target.dataset.node);
                 const isBiasNode = nodeIndex === layerDims[layerIndex];
                 if (isBiasNode) {
-                    content = `Identity node representing the static number $$1$$.\n\nIt provides a way to add the bias term as part of the matrix multiplication, instead performing a seperate addition.`;
+                    content = `Identity node representing the static number $$1$$.\n\nIt provides a way to add the bias term as part of the matrix multiplication, rather than performing a seperate addition after the multiplication.`;
                 } else if (layerIndex === 0) {
                     content = `$$ x_{${nodeIndex}} $$: input feature at index $$${nodeIndex}$$`;
                 } else if (layerIndex === layerDims.length - 1) {
@@ -1011,7 +1011,7 @@
 
                 switch (latexLabel.dataset.info) {
                     case 'x':
-                        explanation = "This represents the input to the neural network.\n\nIn this case, it's a 2D array containing the $$x1$$ and $$x2$$ coordinates of each data point.";
+                        explanation = "This represents the input to the neural network.\n\nIn this case, it's a 2D array containing the $$x_1$$ and $$x_2$$ coordinates of each data point.";
                         break;
                     case 'y':
                         explanation = "This is the true label vector, representing the correct classification for the input.\n\nIt's a one-hot encoded with $$3$$s elements, corresponding to the three possible classes.";
@@ -1055,7 +1055,7 @@
                 : `Evaluated every ${valInterval} epochs`;
 
             const content = `**${dataset}** Data Point (${calculationFrequency})\n
-                $$x_{0}, x_{1}$$ coordinates: $$(${xValue}, ${yValue})$$\n
+                $$(x_{0}, x_{1})$$ coordinates: $$(${xValue}, ${yValue})$$\n
                 Actual Label: ${actualLabel}
                 Predicted Label: ${predictedLabel}
                 ${isHit === true ? '**Correct** Prediction' : '**INCORRECT** Prediction'}`;

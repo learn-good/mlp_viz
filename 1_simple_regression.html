@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLP Linear Regression</title>
+    <title>Linear Regression</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -369,6 +369,9 @@
         let w_true = -2;
         let b_true = 3;
         let noiseScale = 5;
+
+        const x_min = -4
+        const x_max = 4
 
         // AdamW
         let learning_rate = 1e-1;
@@ -917,24 +920,7 @@
 
 
 
-        function showYTrueInfo(event) {
-            const content = `The line representing the **true** parameters ($$\\mathbf{w}=${w_true}, \\mathbf{b}=${b_true}$$)
-            $$ \\mathbf{y} = \\mathbf{w}x + \\mathbf{b} $$\n$$\\mathbf{y} = ${w_true}x + ${b_true}$$\n
-            The full function that generates the data is:
-            $$ \\mathbf{y} = \\mathbf{w}x + \\mathbf{b} + U(-${noiseScale},${noiseScale}) $$\n
-            where $$U$$ is a function that generates a random number uniformly between $$(-${noiseScale},${noiseScale})$$.`;
-            renderInfoContent(infoElement, content);
-
-            // Draw dotted lines
-            // drawDottedLines();
-        }
-
-        function showYPredInfo(event) {
-            const content = `The line representing our current guesses ($$w=${w_pred.toFixed(2)}, b=${b_pred.toFixed(2)}$$)
-            $$ \\hat{y} = wx + b $$
-            $$\\hat{y} = ${w_pred.toFixed(2)}x + ${b_pred.toFixed(2)}$$`;
-            renderInfoContent(infoElement, content);
-        }
+        
 
 
         // function plotDataPointsRegression(dataPoints, predictions, isTrainingSet, r = 5) {
@@ -989,15 +975,33 @@
             const diff = (y_pred - yValue).toFixed(2)
             const loss = (diff ** 2).toFixed(2)
             const content = `**${event.target.classList.contains('train') ? 'Training' : 'Validation'}** Data Point\n
-            $$\\mathbf{x} = ${xValue.toFixed(2)}$$
-            $$\\mathbf{y} = ${yValue.toFixed(2)}$$
-            $$\\hat{y} = w\\mathbf{x} + b = ${y_pred.toFixed(2)}$$\n
-            Difference: $$\\hat{y} - \\mathbf{y} = ${diff}$$
-            Loss: $$(\\hat{y} - \\mathbf{y})^2 = ${loss}$$`;
+            $$(x, y) = (${xValue.toFixed(2)}, ${yValue.toFixed(2)})$$\n
+            $$\\hat{y} = \\hat{w}{x} + \\hat{b} = ${w_pred.toFixed(2)}(${xValue.toFixed(2)}) + ${b_pred.toFixed(2)} = ${y_pred.toFixed(2)}$$\n
+            Difference: $$\\hat{y} - {y} = ${diff}$$
+            Loss: $$(\\hat{y} - {y})^2 = ${loss}$$`;
             renderInfoContent(infoElement, content);
 
             // Draw the line to prediction
             drawLineToPrediction(xValue, yValue, y_pred);
+        }
+
+        function showYTrueInfo(event) {
+            const content = `The line representing the **true** parameters ($$ w=${w_true}, b=${b_true} $$)
+            $$ y = wx + b $$\n$$ y = ${w_true}x + ${b_true}$$\n
+            The full function that generates the data is:
+            $$ y = ${w_true}x + ${b_true} + U(-${noiseScale},${noiseScale}) $$\n
+            where $$U$$ is a function that generates a random number uniformly between $$(-${noiseScale},${noiseScale})$$ and $$x$$ is sampled between $$[${x_min}, ${x_max}]$$.`;
+            renderInfoContent(infoElement, content);
+
+            // Draw dotted lines
+            // drawDottedLines();
+        }
+
+        function showYPredInfo(event) {
+            const content = `The line representing our current guesses for what the parameters $$w$$ and $$b$$ should be: ($$\\hat{w}=${w_pred.toFixed(2)}, \\hat{b}=${b_pred.toFixed(2)}$$).\n
+            $$ \\hat{y} = \\hat{w}x + \\hat{b} $$
+            $$\\hat{y} = ${w_pred.toFixed(2)}x + ${b_pred.toFixed(2)}$$`;
+            renderInfoContent(infoElement, content);
         }
 
 
@@ -1042,13 +1046,13 @@
                 const layerIndex = parseInt(target.dataset.layer);
                 const nodeIndex = parseInt(target.dataset.node);
                 if (nodeIndex === layerDims[layerIndex]) {
-                    content = `Identity node representing the static number $$1$$.\n\nIt provides a way to add the bias term as part of the matrix multiplication, instead performing a seperate addition.`;
+                    content = `Identity node representing the integer $$1$$.\n\nIt provides a way to add the bias term as part of the matrix multiplication, rather than performing a seperate addition after the multiplication.`;
                 } else if (layerIndex === 0) {
-                    content = `The input feature representing the $$ x $$ coordinate of the $$(x,y)$$ plain. When working with higher dimensional inputs of $$ \\mathbf{x} $$, there will be an input node for each feature`;
+                    content = `Input feature: $$ x $$\n\n Represents the $$x$$ coordinate of the $$(x,y)$$ plane.\n\nWhen working with higher dimensional data, there will be an input feature for each dimension of $$ {x} $$, each with its own separate weight term.`;
                 } else if (layerIndex === layerDims.length - 1) {
-                    content = `Output feature at index $$${nodeIndex}$$ for $$\\hat{y}$$`;
+                    content = `Predicted output: $$\\hat{y}$$\n\nThe predicted output based on the input $$x$$ and our model parameters: $$\\hat{y} =\\hat{w}x + \\hat{b}$$.`;
                 } else if (layerIndex === layerDims.length) {
-                    content = `Output feature at index $$${nodeIndex}$$ for $$y$$`;
+                    content = `The true output $$y$$ for the given input $$x$$`;
                 } else {
                     content = `Node in fully connected layer ${layerIndex}, index ${nodeIndex}`;
                 }
@@ -1084,12 +1088,10 @@
                         target.classList.add('negative');
                         target.classList.remove('positive');
                     }
-                    if (fromNodeIndex === layerDims[fromLayerIndex] + 1) {
-                        content = `Bias term for node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                    if (fromNodeIndex === layerDims[fromLayerIndex]) {
+                        content = `Bias term: $$\\hat{b}$$\n\nRepresents our current guess for the true parameter $$b$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
                     } else if (fromNodeIndex === 0) {
-                        content = `Connection from node $$${fromNodeIndex}$$ in the input layer to node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
-                    } else {
-                        content = `Connection from node $$${fromNodeIndex}$$ in layer $$${fromLayerIndex}$$ to node $$${toNodeIndex}$$ in layer $$${toLayerIndex}$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
+                        content = `Weight term: $$\\hat{w}$$\n\nRepresents our current guess for the true parameter $$w$$.\n\nStrength: $$${strength.toFixed(4)}$$`;
                     }
                     content += `\nGradient: $$${gradient.toFixed(4)}$$`;
 
@@ -1098,40 +1100,44 @@
                 const layer = target.classList.contains('layer') ? target : target.parentElement;
                 const layerIndex = parseInt(layer.dataset.layer);
                 if (layerIndex === 0) {
-                    content = `Input layer, containing $$ ${layerDims[layerIndex]}$$ features`;
+                    content = `Input layer: contains the input $$x$$ and an identity node $$1$$.`;
                 } else if (layerIndex === layerDims.length - 1) {
-                    content = `Output layer $$\\hat{y}$$, containing $$ ${layerDims[layerIndex]}$$ features`;
+                    content = `Output layer: contains the output $$\\hat{y}$$`;
                 } else if (layerIndex === layerDims.length) {
-                    content = `True values $$y$$, containing $$${layerDims[layerDims.length - 1]}$$ features`;
-                } else {
-                    content = `Fully connected layer ${layerIndex}, containing $$${layerDims[layerIndex]}$$ nodes`;
+                    content = `The true value $$y$$ which we will compare with $$\\hat{y}$$ to measure our loss.`;
                 }
             } else if (target.closest('.latex-label')) {
                 const latexLabel = target.closest('.latex-label');
                 const formula = latexLabel.dataset.latex;
                 let explanation = '';
+                const W_mat = `\\begin{bmatrix} \\hat{w} , \\hat{b} \\end{bmatrix}`
+                const X_mat = `\\begin{bmatrix} x \\\\ 1 \\end{bmatrix}`
 
                 switch (latexLabel.dataset.info) {
                     case 'x':
                         explanation = "This represents the input to the neural network.\n\nIn this case, it's a 2D array containing the $$x1$$ and $$x2$$ coordinates of each data point.";
                         break;
                     case 'y':
-                        explanation = "This is the true label vector, representing the correct classification for the input.\n\nIt's a one-hot encoded with $$3$$s elements, corresponding to the three possible classes.";
+                        explanation = "This is the true value $$y$$ for the given input $$x$$.";
                         break;
                     case 'y_hat':
-                        explanation = "This is the predicted output of the neural network. It has $$3$$ elements, each representing the network's confidence that the input belongs to one of the three classes.";
+                        explanation = `$$\\hat{y}$$ is the predicted output of the neural network.
+                        We can think of $$W$$ as a linear function that maps $$x$$ to $$\\hat{y}$$: $$W(x) =\\hat{w}x + \\hat{b} = \\hat{y}$$\n
+                        The actual operation that will be carried out mathematically is $$\\hat{y} = W \\cdot X = ${W_mat} \\cdot ${X_mat} = \\hat{w}x + \\hat{b} $$
+                        where $$W = ${W_mat}, X = ${X_mat}$$`;
                         break;
                     case 'loss':
-                        explanation = `This is the loss function, which measures the difference between the predicted output $$\\hat{y}$$ and the true label $$y$$. We use cross-entropy loss for this classification task.\n\nThe goal of training is to minimize this loss, bringing $$\\hat{y}$$ and $$y$$ closer for every input.`;
+                        explanation = `This is the loss function, which measures the difference between the predicted output $$\\hat{y}$$ and the true label $$y$$. We use mean squared error (MSE) loss for this regression task.
+                        $$ L(\\hat{y},y) = MSE(\\hat{y},y) = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i)^2$$, where $$i$$ is the index of each sample in the dataset, and $$n$$ is the total number of samples.
+                        \nThe goal of training is to minimize this loss.`;
                         break;
                     default:
                         if (latexLabel.dataset.info.startsWith('W')) {
-                            const layerNum = latexLabel.dataset.info.slice(1);
-                            explanation = `This represents the weight matrix for layer $$ ${layerNum}$$.`; // TODO more info
-                        } else if (latexLabel.dataset.info.startsWith('fc')) {
-                            const layerNum = latexLabel.dataset.info.slice(2);
-                            explanation = `This represents the operation in fully connected layer $$ ${layerNum}$$.\n\n ... $$\\phi$$ (in this case, $$tanh$$).`;
-                        }
+                            explanation = `This represents the weight matrix we use to map $$x$$ to $$\\hat{y}$$
+                            $$W = ${W_mat}, X = ${X_mat}$$
+                            $$\\hat{y} = W \\cdot X = ${W_mat} \\cdot ${X_mat} = \\hat{w}x + \\hat{b} $$\n
+                            Alternatively, we can conceive of $$W$$ as a linear function that we apply to $$x$$ to get $$\\hat{y}$$: $$W(x) =\\hat{w}x + \\hat{b} = \\hat{y}$$`; 
+                        } 
                 }
 
                 content = `$$${formula}$$\n\n${explanation}`;
@@ -1193,12 +1199,12 @@
         // Create figure labels
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // function renderLatexLabelsDataPlot() {
-        //     katex.render("\\mathbf{w} =", document.getElementById('w-label'), {
+        //     katex.render("{w} =", document.getElementById('w-label'), {
         //         throwOnError: false,
         //         displayMode: false,
         //         fontSize: '16px'
         //     });
-        //     katex.render("\\mathbf{b} =", document.getElementById('b-label'), {
+        //     katex.render("{b} =", document.getElementById('b-label'), {
         //         throwOnError: false,
         //         displayMode: false,
         //         fontSize: '16px'
@@ -1241,26 +1247,23 @@
             const layerGap = svgWidth / (layerDims.length + 2);
 
             // Input layer label
-            svgNetwork.appendChild(createLatexLabel(layerGap, svgHeight - 20, '\\mathbf{x}', LATEX_COLOR, "x"));
-            // Hidden layer labels
-            for (let i = 1; i < layerDims.length - 1; i++) {
-                svgNetwork.appendChild(createLatexLabel((i + 1) * layerGap, svgHeight - 20, `\\mathbf{x}:=\\phi(\\mathbf{W}_{${i}}\\mathbf{x})`, LATEX_COLOR, "fc" + i));
-            }
+            svgNetwork.appendChild(createLatexLabel(layerGap, svgHeight - 20, '{x}', LATEX_COLOR, "x"));
             // Output layer label
-            svgNetwork.appendChild(createLatexLabel(layerDims.length * layerGap, svgHeight - 20, `\\hat{\\mathbf{y}} := \\mathbf{W}_{${layerDims.length - 1}}\\mathbf{x}`, LATEX_COLOR, "y_hat"));
+            svgNetwork.appendChild(createLatexLabel(layerDims.length * layerGap, svgHeight - 20, `\\hat{{y}} = {W}({x})`, LATEX_COLOR, "y_hat"));
             // True values label
-            svgNetwork.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, '\\mathbf{y}', LATEX_COLOR, "y"));
+            svgNetwork.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, '{y}', LATEX_COLOR, "y"));
             // Weight labels
-            for (let i = 1; i < layerDims.length; i++) {
-                svgNetwork.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `\\mathbf{W}_{${i}}`, LATEX_COLOR, "W" + i));
-            }
+            svgNetwork.appendChild(createLatexLabel(1 * layerGap + layerGap / 2, 20, `W`, LATEX_COLOR, "W" + 1));
+            // for (let i = 1; i < layerDims.length; i++) {
+            //     svgNetwork.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `{W}_{${i}}`, LATEX_COLOR, "W" + i));
+            // }
         }
 
 
         function addLossLabel() {
             const lastLayerX = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
             const braceWidth = 15;
-            svgNetwork.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{\\mathbf{y}}, \\mathbf{y})', LATEX_COLOR_LOSS, "loss"));
+            svgNetwork.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{y}, y)', LATEX_COLOR_LOSS, "loss"));
         }
 
 
@@ -1369,7 +1372,7 @@
 
 
         function resetTrainingDisplay() {
-            document.getElementById('epoch-display').textContent = `Epoch: 0`;
+            document.getElementById('epoch-display').textContent = `Epoch: N/A`;
             document.getElementById('train-loss-value').textContent = 'N/A';
             document.getElementById('val-loss-value').textContent = 'N/A';
         }
@@ -1420,11 +1423,11 @@
                 return a + (b - a) * this.random();
             }
         }
-
+        
         function gen_data_linear_regression(random, n = 100) {
             let pts = [];
             for (let i = 0; i < n; i++) {
-                let x = random.uniform(-5.0, 5.0);
+                let x = random.uniform(x_min, x_max);
                 let noise = random.uniform(-noiseScale, noiseScale);
                 let y = w_true * x + b_true + noise
                 pts.push([x, y]);
