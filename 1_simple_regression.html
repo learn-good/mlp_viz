@@ -17,7 +17,7 @@
             line-height: 1.5;
             font-family: 'Courier New', Courier, monospace;
             padding: 20px;
-            width: 400px;
+            /* width: 400px; */
         }
 
         .loss-display {
@@ -365,8 +365,8 @@
         let maxGradient = 0.001;
 
         // Linear Regression
-        let w_pred = 0;
-        let b_pred = 0;
+        let w_hat = 1;
+        let b_hat = 1;
         let w_true = -2;
         let b_true = 3;
         let sigma = 1;
@@ -375,11 +375,11 @@
         const x_max = 8
 
         // AdamW
-        let learning_rate = 1e-10;
-        let beta1 = 0.9;
-        let beta2 = 0.95;
-        let weight_decay = 1e-4;
-        const eps = 1e-8;
+        let learning_rate = 1e-2;
+        // let beta1 = 0.9;
+        // let beta2 = 0.95;
+        // let weight_decay = 1e-4;
+        // const eps = 1e-8;
 
         const input_w = document.getElementById('w-input');
         const input_b = document.getElementById('b-input');
@@ -442,12 +442,12 @@
         }
 
 
-        function resetAdamMLP() {
-            for (const p of mlp.parameters()) {
-                p.m = 0.0;
-                p.v = 0.0;
-            }
-        }
+        // function resetAdamMLP() {
+        //     for (const p of mlp.parameters()) {
+        //         p.m = 0.0;
+        //         p.v = 0.0;
+        //     }
+        // }
 
         function resetData() {
             w_true = parseFloat(document.getElementById('w-input').value);
@@ -464,7 +464,9 @@
 
         function resetMLP() {
             mlp = new MLP(1, [1]);
-            resetAdamMLP();
+            mlp.parameters()[0].data = 1;
+            mlp.parameters()[1].data = 1;
+            // resetAdamMLP();
 
             currentTrainingStage = 0;
             epoch = 0;
@@ -485,11 +487,13 @@
             if (!mlp) {
                 return
             }
-            // Get maxStrength and maxGradient over the mlp params
-            [maxStrength, maxGradient] = mlp.parameters().reduce((max, v) => [
-                Math.max(max[0], Math.abs(v.data)),
-                Math.max(max[1], Math.abs(v.grad))
-            ], [-Infinity, -Infinity]);
+
+            const w_hat_val = mlp.parameters()[0].data;
+            const b_hat_val = mlp.parameters()[1].data;
+            const w_hat_grad = mlp.parameters()[0].grad;
+            const b_hat_grad = mlp.parameters()[1].grad;
+            maxStrength = Math.max(Math.abs(w_hat_val), Math.abs(b_hat_val));
+            maxGradient = Math.max(Math.abs(w_hat_grad), Math.abs(b_hat_grad));
         }
 
         function drawNetwork() {
@@ -886,8 +890,8 @@
             const newY = currentTransform.rescaleY(y);
 
             const lineData = [
-                { x: newX.domain()[0], y: w_pred * newX.domain()[0] + b_pred },
-                { x: newX.domain()[1], y: w_pred * newX.domain()[1] + b_pred }
+                { x: newX.domain()[0], y: w_hat * newX.domain()[0] + b_hat },
+                { x: newX.domain()[1], y: w_hat * newX.domain()[1] + b_hat }
             ];
 
             const line = d3.line()
@@ -979,12 +983,12 @@
 
         function showDataPointInfo(event, d) {
             const [xValue, yValue] = d;
-            const y_pred = w_pred * xValue + b_pred;
+            const y_pred = w_hat * xValue + b_hat;
             const diff = (y_pred - yValue).toFixed(2)
             const loss = (diff ** 2).toFixed(2)
             const content = `**${event.target.classList.contains('train') ? 'Training' : 'Validation'}** Data Point\n
             $$(x, y) = (${xValue.toFixed(2)}, ${yValue.toFixed(2)})$$\n
-            $$\\hat{y} = \\hat{w}{x} + \\hat{b} = ${w_pred.toFixed(2)}(${xValue.toFixed(2)}) + ${b_pred.toFixed(2)} = ${y_pred.toFixed(2)}$$\n
+            $$\\hat{y} = \\hat{w}{x} + \\hat{b} = ${w_hat.toFixed(2)}(${xValue.toFixed(2)}) + ${b_hat.toFixed(2)} = ${y_pred.toFixed(2)}$$\n
             Difference: $$\\hat{y} - {y} = ${diff}$$
             Squared Error: $$(\\hat{y} - {y})^2 = ${loss}$$`;
             renderInfoContent(infoElement, content);
@@ -1007,9 +1011,9 @@
         }
 
         function showYPredInfo(event) {
-            const content = `The line representing our current guesses for what the parameters $$w$$ and $$b$$ should be: ($$\\hat{w}=${w_pred.toFixed(2)}, \\hat{b}=${b_pred.toFixed(2)}$$).\n
+            const content = `The line representing our current guesses for what the parameters $$w$$ and $$b$$ should be: ($$\\hat{w}=${w_hat.toFixed(2)}, \\hat{b}=${b_hat.toFixed(2)}$$).\n
             $$ \\hat{y} = \\hat{w}x + \\hat{b} $$
-            $$\\hat{y} = ${w_pred.toFixed(2)}x + ${b_pred.toFixed(2)}$$`;
+            $$\\hat{y} = ${w_hat.toFixed(2)}x + ${b_hat.toFixed(2)}$$`;
             renderInfoContent(infoElement, content);
         }
 
@@ -1046,6 +1050,7 @@
             } else if (target.id === 'btn-fwd-backprop-update') {
                 switch (currentTrainingStage) {
                     case 0:
+                        // addOpLabels();
                         content = "**Forward pass**: predict $$\\hat{y}$$ using our current parameters $$\\hat{w}$$ and $$\\hat{b}$$. Calculate the $$MSE$$ loss with respect to the true output values $$y$$.";
                         break;
                     case 1:
@@ -1057,17 +1062,6 @@
                         content = `**Update**: based on our optimization strategy (gradient descent in our case) and hyperparameters (learning rate), make changes to out parameters $$\\hat{w}$$ and $$\\hat{b}$$, nudging them in the direction of lower loess. Zero the gradients to prepare for the next iteration.`;
                         break;
                 }
-                // TODO
-                // TODO
-                // TODO
-                // TODO
-                // TODO
-                // TODO
-                // TODO
-                // TODO
-                // TODO
-                // TODO
-                // TODO
             } else if (target.id === 'btn-reset-mlp') {
                 content = `Reset the network parameters to $$0$$.`;
             } else if (target.id === 'btn-shock-weights') {
@@ -1076,7 +1070,9 @@
                 // content = "Run one full epoch of the training loop and show network animations illustrating the forward pass, backpropagation of gradients, and update of the weights.";
                 content = "Run one full epoch of the training loop.";
             } else if (target.id === 'btn-regen-data') {
-                content = `Initialize new data sampled from $$ y = ${w_true}x + ${b_true} + N(0,${sigma}) $$\n
+                content = `Initialize new training and validation data sampled from:
+                $$ y = wx + b + N(0,${sigma}) $$
+                $$ y = ${w_true}x + ${b_true} + N(0,${sigma}) $$\n
                 where $$ N(0,${sigma})$$ generates noise samples from the normal distribution with mean $$0$$ and standard deviation $$${sigma}$$.`;
             } else if (target.id == "w-input") {
                 content = `Set ground truth parameter $$w$$ for the line:\n$$y = wx + b$$`;
@@ -1172,13 +1168,13 @@
                     case 'y_hat':
                         explanation = `$$\\hat{y}$$ is the predicted output of the neural network.\n
                         For a single example: $$\\hat{y} = W \\cdot X = ${W_mat} \\cdot ${X_mat} = \\hat{w}x + \\hat{b} $$\n
-                        For the full training set, or a batch: $$\\hat{y}_{train} = W \\cdot X_{train} = ${W_mat} \\cdot ${X_train} = ${y_train} $$
+                        For the full training set:\n $$\\hat{y}_{train} = W \\cdot X_{train} = ${W_mat} \\cdot ${X_train} = ${y_train} $$
                         `;
                         break;
                     case 'loss':
                         explanation = `This is the loss function, which measures the difference between the predicted output $$\\hat{y}$$ and the true value $$y$$. We use mean squared error (MSE) loss for this regression task.
                         $$ L(\\hat{y},y) = MSE(\\hat{y},y) = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i)^2$$, where $$i$$ is the index of each sample in the dataset, and $$n$$ is the total number of samples.\n
-                        The goal of training is to minimize this loss, bringing $$\\hat{y}$$ closer to $$y$$ by modifying the parameters $$\\hat{w}$$ and $$\\hat{b}$$ via backpropagation of error and greadient descent.`;
+                        The goal of training is to minimize this loss, bringing $$\\hat{y}$$ closer to $$y$$ by modifying the parameters $$\\hat{w}$$ and $$\\hat{b}$$ via backpropagation of error and gradient descent.`;
                         break;
                     case 'w_hat':
                         explanation = explanation_w_hat;
@@ -1316,14 +1312,17 @@
             // True values label
             svgNetwork.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, 'y', LATEX_COLOR, "y"));
             // Weight labels
-            svgNetwork.appendChild(createLatexLabel(1 * layerGap + layerGap / 2, 20, `W`, LATEX_COLOR, "W" + 1));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 20, `W`, LATEX_COLOR, "W" + 1));
 
             // x, 1, w_hat and b_hat
             const singleCharWidth = 15;
-            svgNetwork.appendChild(createLatexLabel(1 * layerGap + layerGap / 2, 265, `\\hat{w}`, LATEX_COLOR, "w_hat", singleCharWidth));
-            svgNetwork.appendChild(createLatexLabel(1 * layerGap + layerGap / 2, 380, `\\hat{b}`, LATEX_COLOR, "b_hat", singleCharWidth));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 265, `\\hat{w}`, LATEX_COLOR, "w_hat", singleCharWidth));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 380, `\\hat{b}`, LATEX_COLOR, "b_hat", singleCharWidth));
             svgNetwork.appendChild(createLatexLabel(layerGap, 200, 'x', LATEX_COLOR, "x", singleCharWidth));
             svgNetwork.appendChild(createLatexLabel(layerGap, 430, '1', LATEX_COLOR, "one", singleCharWidth));
+
+            
+
 
             // for (let i = 1; i < layerDims.length; i++) {
             //     svgNetwork.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `{W}_{${i}}`, LATEX_COLOR, "W" + i));
@@ -1335,6 +1334,23 @@
             const braceWidth = 15;
             svgNetwork.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{y}, y)', LATEX_COLOR_LOSS, "loss", 150));
         }
+
+        // function addOpLabels() {
+        //     const layerGap = svgWidth / (layerDims.length + 2);
+        //     const singleCharWidth = 15;
+        //     const halfwayPointXW = layerGap + layerGap / 4
+        //     svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 233, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
+        //     svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 402, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
+        //     svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '+', LATEX_COLOR, "sum", singleCharWidth+2));
+        //     // svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '\\sum', LATEX_COLOR, "sum", singleCharWidth+2));
+        // }
+
+        // function removeOpLabels() {
+        //     const opLabels = svgNetwork.querySelectorAll('.latex-label[data-info="multiply"], .latex-label[data-info="sum"]');
+        //     opLabels.forEach(label => {
+        //         label.remove();
+        //     });
+        // }
 
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1553,7 +1569,50 @@
             });
         }
 
+        function updatedGradViz() {
+            setMaxes(); // need updated maxGradient
+            const connections = document.querySelectorAll('.connection');
+            let layerParams = [];
+            let layerSizes = [];
+            mlp.layers.forEach(layer => {
+                layerParams.push(layer.parameters());
+                layerSizes.push(layer.neurons[0].parameters().length)
+            });
+            connections.forEach(connection => {
+                // fromLayer determines the first index into layerParams. 
+                // toNode and fromNode acts as a pointer. `n_elements_previous_layer * toNode + fromNode` gives the index
+                const [fromLayer, fromNode] = connection.dataset.from.split(',').map(val => parseInt(val, 10));
+                const [toLayer, toNode] = connection.dataset.to.split(',').map(val => parseInt(val, 10));
 
+                if (fromLayer < layerParams.length) {
+                    const gradient = layerParams[fromLayer][layerSizes[fromLayer] * toNode + fromNode].grad;
+                    connection.dataset.gradient = gradient.toFixed(4);
+                }
+            });
+        }
+
+        function updatedStrengthViz() {
+            setMaxes(); // need updated maxStrength
+            const connections = document.querySelectorAll('.connection');
+            let layerParams = [];
+            let layerSizes = [];
+            mlp.layers.forEach(layer => {
+                layerParams.push(layer.parameters());
+                layerSizes.push(layer.neurons[0].parameters().length)
+            });
+            connections.forEach(connection => {
+                // fromLayer determines the first index into layerParams. 
+                // toNode and fromNode acts as a pointer. `n_elements_previous_layer * toNode + fromNode` gives the index
+                const [fromLayer, fromNode] = connection.dataset.from.split(',').map(val => parseInt(val, 10));
+                const [toLayer, toNode] = connection.dataset.to.split(',').map(val => parseInt(val, 10));
+
+                if (fromLayer < layerParams.length) {
+                    const weight = layerParams[fromLayer][layerSizes[fromLayer] * toNode + fromNode].data;
+                    connection.dataset.strength = weight.toFixed(4);
+                }
+            });
+            updateConnectionOpacity();
+        }
 
         function updateFwdBackUpButton(button, stage) {
             switch (stage) {
@@ -1702,7 +1761,7 @@
             constructor(nin, kwargs) {
                 super();
                 // this.w = Array(nin).fill().map(() => new Value(random.uniform(-1, 1) * Math.pow(nin, -0.5)));
-                this.w = Array(nin).fill().map(() => new Value(w_pred));
+                this.w = Array(nin).fill().map(() => new Value(w_hat));
                 this.b = new Value(0);
 
                 this.nonlin = kwargs.nonlin !== undefined ? kwargs.nonlin : true;
@@ -1778,41 +1837,24 @@
             }
         }
 
-        function crossEntropy(logits, target) {
-            // subtract the max for numerical stability (avoids overflow)
-            const maxVal = Math.max(...logits.map(v => v.data));
-            const shiftedLogits = logits.map(v => v.sub(maxVal));
-            // 1) evaluate elementwise e^x
-            const ex = shiftedLogits.map(x => x.exp());
-            // 2) compute the sum of the above
-            const denom = ex.reduce((sum, x) => sum.add(x));
-            // 3) normalize by the sum to get probabilities
-            const probs = ex.map(x => x.div(denom));
-            // 4) log the probabilities at target
-            const logp = probs[target].log();
-            // 5) the negative log likelihood loss (invert so we get a loss - lower is better)
-            const nll = logp.neg();
-            return nll;
-        }
-
         // evaluation utility to compute the loss on a given split of the dataset
         function evalSplit(model, split) {
             // evaluate the loss of a split
             let loss = new Value(0);
-            // track for plotting
-            logitsVal = [];
-            predsVal = [];
             for (const [x, y] of split) {
-                const logits = model.call([new Value(x[0]), new Value(x[1])]);
-                logitsVal.push(logits);
-                predsVal.push(argmax(logits.map(v => v.data)));
-                loss = loss.add(crossEntropy(logits, y));
+                const y_hat = mlp.call([new Value(x)])[0];
+                const error =  squared_error_1d(y_hat, y)
+                loss = loss.add(error);
             }
             loss = loss.mul(1.0 / split.length); // normalize the loss
             return loss.data;
         }
 
-        function trainForward() {
+        function squared_error_1d(y_pred, y_true) {
+            return y_pred.sub(y_true).pow(2);
+        }
+
+        function trainForward() {   
             // forward pass
             if (epoch % 10 === 0) {
                 const val_loss = evalSplit(mlp, val_split);
@@ -1820,14 +1862,10 @@
             }
 
             loss = new Value(0);
-            // track for plotting
-            logitsTrain = [];
-            predsTrain = [];
             for (const [x, y] of train_split) {
-                const logits = mlp.call([new Value(x[0]), new Value(x[1])]);
-                logitsTrain.push(logits);
-                predsTrain.push(argmax(logits.map(v => v.data)));
-                loss = loss.add(crossEntropy(logits, y));
+                const y_hat = mlp.call([new Value(x)])[0];
+                const error =  squared_error_1d(y_hat, y)
+                loss = loss.add(error);
             }
             loss = loss.mul(1.0 / train_split.length);
             updateTrainingDisplay(epoch, loss.data, null);
@@ -1836,10 +1874,12 @@
         }
 
         function checkForward() {
+            const val_loss = evalSplit(mlp, val_split);
+            updateTrainingDisplay(epoch, null, val_loss);
+
             loss = 0;
             for (const [x, y] of train_split) {
                 const y_hat = mlp.call([new Value(x)])[0].data;
-                const squared_error = (y_hat - y)**2;
                 loss += (y_hat - y)**2;
             }
             loss /=  train_split.length;
@@ -1855,12 +1895,16 @@
 
         function trainUpdate() {
             // update with AdamW
+            // for (const p of mlp.parameters()) {
+            //     p.m = beta1 * p.m + (1 - beta1) * p.grad;
+            //     p.v = beta2 * p.v + (1 - beta2) * Math.pow(p.grad, 2);
+            //     const m_hat = p.m / (1 - Math.pow(beta1, epoch + 1));
+            //     const v_hat = p.v / (1 - Math.pow(beta2, epoch + 1));
+            //     p.data -= learning_rate * (m_hat / (Math.sqrt(v_hat) + eps) + weight_decay * p.data);
+            // }
+            // update with gradient descent
             for (const p of mlp.parameters()) {
-                p.m = beta1 * p.m + (1 - beta1) * p.grad;
-                p.v = beta2 * p.v + (1 - beta2) * Math.pow(p.grad, 2);
-                const m_hat = p.m / (1 - Math.pow(beta1, epoch + 1));
-                const v_hat = p.v / (1 - Math.pow(beta2, epoch + 1));
-                p.data -= learning_rate * (m_hat / (Math.sqrt(v_hat) + eps) + weight_decay * p.data);
+                p.data -= learning_rate * p.grad;
             }
             updatedStrengthViz();
             mlp.zeroGrad();
@@ -1967,18 +2011,63 @@
             // document.getElementById('noise-input').value = sigma;
         }
 
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Optimization control button listeners
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        btnPlayPause.addEventListener('click', function (event) {
+            isRunningOptimization = !isRunningOptimization;
+            this.querySelector('span').textContent = isRunningOptimization ? '⏸' : '▶';
 
-        document.querySelectorAll('.node, .connection, .layer, .latex-label').forEach(addEventListeners);
+            if (isRunningOptimization) {
+                trainModel(currentTrainingStage);
+            }
 
-        addEventListeners(input_w);
-        addEventListeners(input_b);
-        addEventListeners(btn_regen_data);
+            // const buttonsDisableRunning = ['btn-reset-mlp', 'btn-shock-weights', 'btn-step', 'btn-fwd-backprop-update'];
+            const buttonsDisableRunning = ['btn-reset-mlp', 'btn-step', 'btn-fwd-backprop-update'];
+            buttonsDisableRunning.forEach(id => {
+                const button = document.getElementById(id);
+                button.disabled = isRunningOptimization;
+            });
+            showInfo(event);
+        });
+
+        btnStep.addEventListener('click', function () {
+            trainModelStep(currentTrainingStage, true);
+            updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
+            showInfo({ target: this });
+        });
+
+        btnFwdBackUp.addEventListener('click', function () {
+            // TODO btn event handler for update
+            trainModelStep(currentTrainingStage, false);
+            // updateFwdBackUpButton(this, currentTrainingStage);
+            showInfo({ target: this });
+        });
+
+        btnResetMLP.addEventListener('click', function () {
+            resetMLP();
+        });
+
+        document.getElementById('btn-shock-weights').addEventListener('click', function () {
+            mlp.shockWeights();
+            animateShockWeights();
+        });
 
         addEventListeners(btnPlayPause);
         addEventListeners(btnShock);
         addEventListeners(btnStep);
         addEventListeners(btnResetMLP);
         addEventListeners(btnFwdBackUp);
+        // btnFwdBackUp.addEventListener('mouseout', removeOpLabels);
+        
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Other html element listeners
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        document.querySelectorAll('.node, .connection, .layer, .latex-label').forEach(addEventListeners);
+
+        addEventListeners(input_w);
+        addEventListeners(input_b);
+        addEventListeners(btn_regen_data);
 
         addEventListenersReportingDisplay(displayEpoch);
         addEventListenersReportingDisplay(displayTrainLoss);
@@ -1991,6 +2080,7 @@
             // animateShockWeights();
         });
 
+        // "Main"
         window.onload = function () {
             initializeD3Plot();
             renderLatexLabelsDataPlot();
