@@ -506,6 +506,13 @@
         function drawNetwork() {
             svg.innerHTML = '';
 
+            // Create a group for all layers
+            const layersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            // layersGroup.id = 'layers-group';
+            svgNetwork.appendChild(layersGroup);
+
+            const nodesGroupRaised = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            
             const layerGap = svgWidth / (layerDims.length + 2);
             setMaxes(); // get max strength and gradient of network for drawing
 
@@ -537,7 +544,11 @@
 
                 for (let i = 0; i < nodeCountNoBias; i++) {
                     const svgY = (i + 1) * (svgHeight / (totalNodes + 1));
-                    drawNode(svgX, svgY, layerIndex, i, layerGroup);
+                    if (layerIndex == 1) {
+                        drawNode(svgX, svgY, layerIndex, i, nodesGroupRaised);
+                    } else {
+                        drawNode(svgX, svgY, layerIndex, i, layerGroup);
+                    }
                 }
 
                 // Add bias node for all layers except the last one
@@ -546,7 +557,8 @@
                     drawBiasNode(svgX, biasY, layerIndex, layerGroup);
                 }
 
-                svgNetwork.appendChild(layerGroup);
+                // svgNetwork.appendChild(layerGroup);
+                layersGroup.appendChild(layerGroup);
 
                 // Draw connections
                 if (layerIndex < layerDims.length - 1) {
@@ -579,7 +591,8 @@
                 drawNode(yLayerX, svgY, layerDims.length, i, yLayerGroup);
             }
 
-            svgNetwork.appendChild(yLayerGroup);
+            // svgNetwork.appendChild(yLayerGroup);
+            layersGroup.appendChild(yLayerGroup);
 
             // Draw connections between y_hat and y
             drawYConnections(layerDims.length - 1, (layerDims.length) * layerGap, layerGap);
@@ -605,6 +618,7 @@
             brace.setAttribute('stroke', '#ccc');
             brace.setAttribute('stroke-width', '2');
             svgNetwork.appendChild(brace);
+            svgNetwork.appendChild(nodesGroupRaised);
 
             addLayerLabels();
             addLossLabel();
@@ -1256,12 +1270,12 @@
         }
 
 
-        function createLatexLabel(x, y, text, color, labelInfo, width = 250) {
+        function createLatexLabel(x, y, text, color, labelInfo, width = 250, height=40) {
             const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
             foreignObject.setAttribute('x', x - (width / 2));
             foreignObject.setAttribute('y', y - 20);
             foreignObject.setAttribute('width', width);
-            foreignObject.setAttribute('height', '40');
+            foreignObject.setAttribute('height', height);
             foreignObject.classList.add('latex-label');
             foreignObject.dataset.latex = text;
             foreignObject.dataset.info = labelInfo;
@@ -1315,10 +1329,27 @@
         }
 
         function addLossLabel() {
-            const lastLayerX = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
+            const lastLayer = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
             const braceWidth = 15;
-            svgNetwork.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{y}, y)', LATEX_COLOR_LOSS, "loss", 150));
+            svgNetwork.appendChild(createLatexLabel(lastLayer + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{y}, y)', LATEX_COLOR_LOSS, "loss", 150));
         }
+
+        function addBackwardPassLabels() {
+            const layerGap = svgWidth / (layerDims.length + 2);
+
+            // right below loss expand mse formula
+            const lastLayer = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
+            const braceWidth = 15;
+            svgNetwork.appendChild(createLatexLabel(lastLayer + braceWidth * 1.5 + 80, 
+                                                    (svgHeight / 2) + 30, '={(\\hat{y} - y)}^2', LATEX_COLOR_LOSS, "loss_expanded", 150));
+            
+            // right below y_hat node - dL/dy_hat
+            svgNetwork.appendChild(createLatexLabel(layerDims.length * layerGap, (svgHeight / 2) + 50, 
+            `\\dfrac{dL}{d\\hat{y}} = 2(\\hat{y} - y)`, LATEX_COLOR, "y_hat_grad", 180, 60));
+            // right above w_hat - dL/dw_hat = dy_hat/dw_hat * d
+            // right below b_hat - 
+        }
+
 
         function addOpLabels() {
             const layerGap = svgWidth / (layerDims.length + 2);
@@ -1336,6 +1367,8 @@
                 label.remove();
             });
         }
+
+        
 
         function addGradLabelsParams() {
 
@@ -1612,9 +1645,10 @@
         // }
         function animateBackwardPass() {
             const stepDurationMs = 500;
-            logMessage("1");
-            setTimeout(() => logMessage("2"), stepDurationMs);
-            setTimeout(() => logMessage("3"), 2*stepDurationMs);
+            addBackwardPassLabels();
+            // logMessage("1");
+            // setTimeout(() => logMessage("2"), stepDurationMs);
+            // setTimeout(() => logMessage("3"), 2*stepDurationMs);
         }
 
 
