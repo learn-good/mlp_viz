@@ -26,7 +26,6 @@
 
         .loss-label {
             width: 250px;
-            /* Adjust this value as needed */
         }
 
         #main-container {
@@ -38,7 +37,6 @@
         #svg-container {
             flex: 0 0 1200px;
             z-index: 10;
-            /* overflow: auto; */
         }
 
         #right-container {
@@ -48,10 +46,8 @@
         }
 
         #info-container {
-            /* flex: 1; */
             min-height: 350px;
             padding: 15px;
-            /* overflow-y: auto; */
             overflow: hidden;
         }
 
@@ -195,7 +191,6 @@
             padding: 8px 12px;
             font-size: 14px;
             cursor: pointer;
-            /* border: 1px solid rgba(0, 0, 128, 0.4); */
             border: 0;
             box-shadow: 0 1px 4px 0 rgba(31, 38, 135, 0.2);
             border-radius: 5px;
@@ -258,29 +253,8 @@
             stroke-width: 2;
         }
 
-        .data-point.miss {
-            fill-opacity: 1;
-        }
-
-        .label-missing {
-            fill: gray;
-            fill-opacity: 1;
-        }
-
         .regression {
             fill: navy;
-        }
-
-        .label-0 {
-            fill: navy;
-        }
-
-        .label-1 {
-            fill: gold;
-        }
-
-        .label-2 {
-            fill: red;
         }
 
         .prediction-line {
@@ -413,18 +387,15 @@
         const layerColors = {
             x: {
                 shape: "#ccc",
-                // overlay: "rgba(255, 255, 255, 0.2)"
-                overlay: "rgb(250, 250, 250)"
+                background: "rgb(250, 250, 250)"
             },
             fc: {
-                // keep layer display minimaly white for now
                 shape: '#FFFFFF',
-                overlay: "rgba(255, 255, 255, 0.2)"
+                background: "rgb(255, 255, 255)"
             },
             y: {
                 shape: "#ccc",
-                // overlay: "rgba(255, 255, 255, 0.2)"
-                overlay: "rgb(250, 250, 250)"
+                background: "rgb(250, 250, 250)"
             },
             bias: {
                 shape: "#999",
@@ -482,7 +453,7 @@
         }
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Draw the MLP
+        // Draw the network
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         function setMaxes() {
             if (!mlp) {
@@ -500,7 +471,7 @@
         function drawNetwork() {
             svg.innerHTML = '';
 
-            // Create a group for all layers
+            // Create a group for all background layers
             const layersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             svgNetwork.appendChild(layersGroup);
 
@@ -525,7 +496,7 @@
                 layerRect.setAttribute('width', layerGroupWidth);
                 layerRect.setAttribute('height', svgHeight);
                 const layerColor = getLayerColor(layerIndex);
-                layerRect.setAttribute('fill', layerColor.overlay);
+                layerRect.setAttribute('fill', layerColor.background);
 
                 layerGroup.appendChild(layerRect);
 
@@ -569,7 +540,7 @@
             yLayerRect.setAttribute('y', 0);
             yLayerRect.setAttribute('width', layerGroupWidth);
             yLayerRect.setAttribute('height', svgHeight);
-            yLayerRect.setAttribute('fill', layerColors.y.overlay);
+            yLayerRect.setAttribute('fill', layerColors.y.background);
 
             yLayerGroup.appendChild(yLayerRect);
 
@@ -582,7 +553,6 @@
                 drawNode(yLayerX, svgY, layerDims.length, i, yLayerGroup);
             }
 
-            // svgNetwork.appendChild(yLayerGroup);
             layersGroup.appendChild(yLayerGroup);
 
             // Draw connections between y_hat and y
@@ -616,7 +586,7 @@
         }
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Draw nodes
+        // Draw nodes (network)
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         function drawNode(x, y, layerIndex, nodeIndex, parent, isBiasNode = false) {
             const r = 10;
@@ -643,7 +613,7 @@
         }
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Draw connections
+        // Draw connections (network)
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         function drawConnections(layerIndex, layerXCoord, layerGap) {
             const currentLayer = mlp.layers[layerIndex];
@@ -1014,8 +984,16 @@
             const b_strength = params[1].data;
             const w_grad = params[0].grad;
             const b_grad = params[1].grad;
-            const explanation_w_hat = `Weight term: $$\\hat{w}$$\n\nThis represents our current guess for the true parameter $$w$$.\nThis is a mutable parameter that we use to scale the input feature $$x$$.\n\nValue: $$${w_strength.toFixed(4)}$$\nGradient: $$${w_grad.toFixed(4)}$$`;
-            const explanation_b_hat = `Bias term: $$\\hat{b}$$\n\nThis represents our current guess for the true parameter $$b$$.\nThis is a mutable parameter that captures constant effects not explained by the input feature $$x$$.\n\nValue: $$${b_strength.toFixed(4)}$$\nGradient: $$${b_grad.toFixed(4)}$$`;
+            let explanation_w_hat = `Weight term: $$\\hat{w}$$\n\nThis represents our current guess for the true parameter $$w$$.\nThis is a mutable parameter that we use to scale the input feature $$x$$.\n\nValue: $$${w_strength.toFixed(4)}$$\nGradient: $$${w_grad.toFixed(4)}$$`;
+            if (Math.abs(w_grad) > 0.0001) {
+                const adjustment = (-learning_rate * w_grad).toFixed(6)
+                explanation_w_hat += `\nAdjustment = $$-\\alpha * \\frac{\\partial L}{\\partial \\hat{w}} = -${learning_rate} * ${w_grad.toFixed(4)} = ${adjustment} $$`
+            }
+            let explanation_b_hat = `Bias term: $$\\hat{b}$$\n\nThis represents our current guess for the true parameter $$b$$.\nThis is a mutable parameter that captures constant effects not explained by the input feature $$x$$.\n\nValue: $$${b_strength.toFixed(4)}$$\nGradient: $$${b_grad.toFixed(4)}$$`;
+            if (Math.abs(b_grad) > 0.0001) {
+                const adjustment = (-learning_rate * b_grad).toFixed(6)
+                explanation_b_hat += `\nAdjustment = $$-\\alpha * \\frac{\\partial L}{\\partial \\hat{b}} = -${learning_rate} * ${b_grad.toFixed(4)} = ${adjustment} $$`
+            }
 
             if (target.id === 'btn-play-pause' || target.id === "btn-play-pause-content") {
                 if (isRunningOptimization) {
@@ -1747,9 +1725,10 @@
             }
         }
 
-        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Micrograd MLP
-        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Micrograd MLP 
+        // (https://github.com/EurekaLabsAI/micrograd)
+        //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         class Value {
             // stores a single scalar value and its gradient
             constructor(data, _children = [], _op = '') {
