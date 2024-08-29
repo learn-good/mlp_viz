@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linear Regression</title>
+    <title>Linear Regression - Gradient Descent</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,7 +17,7 @@
             line-height: 1.5;
             font-family: 'Courier New', Courier, monospace;
             padding: 20px;
-            /* width: 400px; */
+            width: 400px;
         }
 
         .loss-display {
@@ -379,11 +379,6 @@
         const x_max = 8
 
         let learning_rate = 1e-2;
-        // AdamW
-        // let beta1 = 0.9;
-        // let beta2 = 0.95;
-        // let weight_decay = 1e-4;
-        // const eps = 1e-8;
 
         const input_w = document.getElementById('w-input');
         const input_b = document.getElementById('b-input');
@@ -447,19 +442,9 @@
             return layerColors.fc;
         }
 
-
-        // function resetAdamMLP() {
-        //     for (const p of mlp.parameters()) {
-        //         p.m = 0.0;
-        //         p.v = 0.0;
-        //     }
-        // }
-
         function resetData() {
             w_true = parseFloat(document.getElementById('w-input').value);
             b_true = parseFloat(document.getElementById('b-input').value);
-            // sigma = parseFloat(document.getElementById('noise-input').value);
-
 
             [train_split, val_split, test_split] = gen_data_linear_regression(random, 100);
             epoch = 0;
@@ -517,7 +502,6 @@
 
             // Create a group for all layers
             const layersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            // layersGroup.id = 'layers-group';
             svgNetwork.appendChild(layersGroup);
 
             const nodesGroupRaised = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -547,7 +531,6 @@
 
                 layerGroup.addEventListener('mouseover', showInfo);
                 layerGroup.addEventListener('mouseout', clearInfo);
-                // layerGroup.addEventListener('click', showInfo);
 
                 const totalNodes = layerIndex < layerDims.length - 1 ? nodeCountNoBias + 1 : nodeCountNoBias;
 
@@ -592,7 +575,6 @@
 
             yLayerGroup.addEventListener('mouseover', showInfo);
             yLayerGroup.addEventListener('mouseout', clearInfo);
-            // yLayerGroup.addEventListener('click', showInfo);
 
             const lastLayerNodeCount = layerDims[layerDims.length - 1];
             for (let i = 0; i < lastLayerNodeCount; i++) {
@@ -653,8 +635,6 @@
 
             circle.addEventListener('mouseover', showInfo);
             circle.addEventListener('mouseout', clearInfo);
-            // circle.addEventListener('click', showInfo);
-            circle.addEventListener('mouseenter', handleNodeHover);
             circle.addEventListener('mouseleave', resetConnectionHighlights);
         }
 
@@ -869,7 +849,6 @@
         }
 
         function updateDataPlot() {
-            // currentTransform = d3.zoomIdentity;
             // Clear existing content
             scatter.selectAll("*").remove();
 
@@ -1012,9 +991,6 @@
             where $$N$$ is a function that generates a random number from the normal distribution with mean $$0$$ and standard deviation $$${sigma}$$, 
             and $$x$$ is sampled between $$[${x_min}, ${x_max}]$$.`;
             renderInfoContent(infoElement, content);
-
-            // Draw dotted lines
-            // drawDottedLines();
         }
 
         function showYPredInfo(event) {
@@ -1027,8 +1003,6 @@
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Display detailed info top-right
-        // 
-        // TODO later - selectedElement logic so that a click on an el keeps it in display until next click
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         function showInfo(event) {
             const target = event.target;
@@ -1057,15 +1031,12 @@
             } else if (target.id === 'btn-fwd-backprop-update') {
                 switch (currentTrainingStage) {
                     case 0:
-                        // addOpLabels();
                         content = "**Forward pass**: predict $$\\hat{y}$$ using our current parameters $$\\hat{w}$$ and $$\\hat{b}$$. Calculate the $$MSE$$ loss with respect to the true output values $$y$$.";
                         break;
                     case 1:
-                        // content = "**Backpropagate gradients**: Use the loss information to calculate gradients for each of the tunable weight parameters $$ W $$, starting at the end of the MLP and using the gradient information from later layers to calculate how much we should change the weights in the earlier layers. We are able to accomplish this using the chain rule from calculus ($$\\dfrac{dL}{dW_{l}} → \\dfrac{dL}{dW_{l-1}} → ... → \\dfrac{dL}{dW_{1}}$$, where $$l$$ is the number of layers in our MLP)";
                         content = "**Backward pass**: backpropagate the gradients from the error caclulation to find the gradient of the parameters $$\\hat{w}$$ and $$\\hat{b}$$, providing us information about how the loss changes with respect to changes in the mutable parameters.";
                         break;
                     case 2:
-                        showNetworkGradients();
                         content = `**Update**: based on our optimization strategy (gradient descent in our case) and hyperparameters (learning rate), make changes to out parameters $$\\hat{w}$$ and $$\\hat{b}$$, nudging them in the direction of lower loss. Zero the gradients to prepare for the next iteration.`;
                         break;
                 }
@@ -1074,7 +1045,6 @@
             } else if (target.id === 'btn-shock-weights') {
                 content = `Add a small amount of uniform random noise between $$[-${shockNoiseScale}, ${shockNoiseScale}]$$ to the weight parameters.`;
             } else if (target.id === 'btn-step') {
-                // content = "Run one full epoch of the training loop and show network animations illustrating the forward pass, backpropagation of gradients, and update of the weights.";
                 content = "Run one full epoch of the training loop.";
             } else if (target.id === 'btn-regen-data') {
                 content = `Initialize new training and validation data sampled from:
@@ -1119,7 +1089,6 @@
                     const gradEpsilon = 0.0001;
 
                     let color;
-                    // if (gradient >= 0) {
                     if (gradient < 0) {
                         color = `rgba(0, 0, 255, ${absGradient / (maxGradient + gradEpsilon)})`;
                     } else {
@@ -1139,7 +1108,6 @@
                     } else if (fromNodeIndex === 0) {
                         content = explanation_w_hat;
                     }
-                    // content += `\nGradient: $$${gradient.toFixed(4)}$$`;
 
                 }
             } else if (target.classList.contains('layer') || target.parentElement.classList.contains('layer')) {
@@ -1197,14 +1165,6 @@
                         explanation = explanation_one;
                         break;
                     case 'loss_expanded':
-                        // const spaces1 = `\\ `.repeat(13);
-                        // const spaces2 = `\\ `.repeat(20);
-                        // explanation = `This is the Mean Squared Error (MSE) loss function for a single data point:\n
-                        // $$ L(\\hat{y}, y) = (\\hat{y} - y)^2$$
-                        // $$ ${spaces1} = (\\hat{w}x + \\hat{b} - y)^2 $$\n
-                        // For the entire data set:\n
-                        // $$MSE(\\hat{y},y) = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i)^2$$
-                        // $$${spaces2} = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{w} x_i + \\hat{b} - y_i)^2$$`;
                         explanation = `This is the Mean Squared Error (MSE) loss function for a single data point:\n
                         $$ L(\\hat{y}, y) = (\\hat{y} - y)^2$$\n
                         For the entire data set:\n
@@ -1226,11 +1186,6 @@
                         break;
 
                     case 'w_hat_d2':
-                        // explanation = `This is the expanded form of the gradient of the loss with respect to $$\\hat{w}$$:\n
-                        // $$ \\frac{\\partial L}{\\partial \\hat{w}} = 2(\\hat{y} - y) \\cdot x $$\n
-                        // Here, $$x$$ comes from $$\\frac{\\partial \\hat{y}}{\\partial \\hat{w}} = x$$ because $$\\hat{y} = \\hat{w}x + \\hat{b}$$.`;
-                        // $$ \\frac{\\partial L}{\\partial \\hat{w}} = 2(\\hat{y} - y) * x = 2(\\hat{w}x + \\hat{b} - y) * x$$\n
-                        // For the entire data set: $$\\frac{\\partial L}{\\partial \\hat{w}} = \\frac{2}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i) x_i  = \\frac{2}{n} \\sum_{i=1}^{n}  (\\hat{w}x_i + \\hat{b} - y_i) x_i$$`;
                         explanation = `This is the expanded form of the gradient of the loss with respect to $$\\hat{w}$$:\n
                         $$ \\frac{\\partial L}{\\partial \\hat{w}} = 2(\\hat{y} - y) * x$$\n
                         Here, the $$x$$ comes from the product rule of derivatives. $$\\frac{\\partial \\hat{y}}{\\partial \\hat{w}} = x$$ because $$\\hat{y} = (\\hat{w}*x) + \\hat{b}$$.\n
@@ -1240,7 +1195,8 @@
                     case 'update_w_hat':
                         explanation = `This is the update rule for $$\\hat{w}$$ using gradient descent:\n
                         $$ \\hat{w} := \\hat{w} - \\alpha  \\frac{\\partial L}{\\partial \\hat{w}} $$\n
-                        where $$\\alpha=${learning_rate}$$ is the learning rate. This update nudges $$\\hat{w}$$ in the direction that reduces the loss.`;
+                        where $$\\alpha=${learning_rate}$$ is the learning rate. This update nudges $$\\hat{w}$$ in the direction that reduces the loss.\n
+                        If the learning rate $$\\alpha$$ is too large, gradient descent will not converge.`;
                         break;
 
                     case 'b_hat_d1':
@@ -1250,10 +1206,6 @@
                         break;
 
                     case 'b_hat_d2':
-                        // s is the expanded form of the gradient of the loss with respect to $$\\hat{b}$$:\n
-                        //     $$ \\frac{\\partial L}{\\partial \\hat{b}} = 2(\\hat{y} - y) * 1 = 2(\\hat{w}x + \\hat{b} - y)$$\n
-                        //     Here, the $$1$$ comes from the product rule of derivatives. $$\\frac{\\partial \\hat{y}}{\\partial \\hat{b}} = 1$$ because $$\\hat{y} = \\hat{w}x + (\\hat{b}*1)$$.\n
-                        //     For the entire data set: $
                         explanation = `This is the expanded form of the gradient of the loss with respect to $$\\hat{b}$$:\n
                         $$ \\frac{\\partial L}{\\partial \\hat{b}} = 2(\\hat{y} - y) * 1$$\n
                         Here, the $$1$$ comes from the product rule of derivatives. $$\\frac{\\partial \\hat{y}}{\\partial \\hat{b}} = 1$$ because $$\\hat{y} = \\hat{w}x + (\\hat{b}*1)$$.\n
@@ -1263,7 +1215,8 @@
                     case 'update_b_hat':
                         explanation = `This is the update rule for $$\\hat{b}$$ using gradient descent:\n
                         $$ \\hat{b} := \\hat{b} - \\alpha  \\frac{\\partial L}{\\partial \\hat{b}} $$\n
-                        where $$\\alpha=${learning_rate}$$ is the learning rate. This update nudges $$\\hat{b}$$ in the direction that reduces the loss.`;
+                        where $$\\alpha=${learning_rate}$$ is the learning rate. This update nudges $$\\hat{b}$$ in the direction that reduces the loss.\n
+                        If the learning rate $$\\alpha$$ is too large, gradient descent will not converge.`;
                         break;
                     default:
                         if (latexLabel.dataset.info.startsWith('W')) {
@@ -1274,7 +1227,6 @@
                         }
                 }
 
-                // content = `$$${formula}$$\n\n${explanation}`;
                 content = explanation;
             }
 
@@ -1315,11 +1267,6 @@
             }
 
             renderInfoContent(infoElement, content);
-        }
-
-        function showNetworkGradients() {
-
-
         }
 
         function clearInfo(event) {
@@ -1397,13 +1344,6 @@
             svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 380, `\\hat{b}`, LATEX_COLOR, "b_hat", singleCharWidth));
             svgNetwork.appendChild(createLatexLabel(layerGap, 200, 'x', LATEX_COLOR, "x", singleCharWidth));
             svgNetwork.appendChild(createLatexLabel(layerGap, 430, '1', LATEX_COLOR, "one", singleCharWidth));
-
-
-
-
-            // for (let i = 1; i < layerDims.length; i++) {
-            //     svgNetwork.appendChild(createLatexLabel(i * layerGap + layerGap / 2, 20, `{W}_{${i}}`, LATEX_COLOR, "W" + i));
-            // }
         }
 
         function addLossLabel() {
@@ -1442,25 +1382,6 @@
             const backwardLabels = svgNetwork.querySelectorAll(labelsQuery);
             backwardLabels.forEach(label => label.remove());
         }
-
-
-        function addOpLabels() {
-            const layerGap = svgWidth / (layerDims.length + 2);
-            const singleCharWidth = 15;
-            const halfwayPointXW = layerGap + layerGap / 4
-            svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 233, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
-            svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 402, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
-            // svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '+', LATEX_COLOR, "sum", singleCharWidth+2));
-            svgNetwork.appendChild(createLatexLabel(2 * layerGap, 325, '\\sum', LATEX_COLOR, "sum", singleCharWidth + 2));
-        }
-
-        function removeOpLabels() {
-            const opLabels = svgNetwork.querySelectorAll('.latex-label[data-info="multiply"], .latex-label[data-info="sum"]');
-            opLabels.forEach(label => {
-                label.remove();
-            });
-        }
-
 
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1518,11 +1439,6 @@
         }
 
 
-        function handleNodeHover(event) {
-
-        }
-
-
         function resetConnectionHighlights() {
             // used for clearing node hover and update hover events
             // if (selectedElement) return; // Don't reset if there's a selected element
@@ -1548,9 +1464,7 @@
             const connections = document.querySelectorAll('.connection');
             connections.forEach(connection => {
                 const strength = Math.abs(parseFloat(connection.dataset.strength));
-                // const maxStrength = parseFloat(connection.dataset.maxStrength);
                 let opacity = strength / maxStrength;
-                // opacity = Math.min(opacity, 0.01);
                 connection.setAttribute('stroke-opacity', opacity);
             });
         }
@@ -1571,7 +1485,6 @@
             function animateLayer(layerIndex) {
                 if (layerIndex > layerDims.length) {
                     svgNetwork.removeChild(animationLayer);
-                    // removeOpLabels();
                     return;
                 }
 
@@ -1632,106 +1545,13 @@
 
                 setTimeout(() => animateLayer(layerIndex + 1), stepDurationMs);
             }
-            // addOpLabels();
             animateLayer(0);
         }
 
-        // TODO
-        // TODO Make each step substantially longer, and pause at each relevant layer to calc grads
-        // TODO
-        // function animateBackwardPass() {
-        //     const stepDurationMs = 250;
-
-        //     const animationLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        //     svgNetwork.appendChild(animationLayer);
-
-
-        //     function isTerminalNode(layerIndex, nodeIndex) {
-        //         // X nodes (input layer)
-        //         if (layerIndex === 0) return true;
-
-        //         // Bias nodes (last node in each layer except the output layer)
-        //         if (layerIndex < layerDims.length - 1 && nodeIndex === layerDims[layerIndex]) return true;
-
-        //         return false;
-        //     }
-
-        //     function animateLayer(layerIndex) {
-        //         if (layerIndex < 0) {
-        //             svgNetwork.removeChild(animationLayer);
-        //             return;
-        //         }
-
-        //         const nodes = document.querySelectorAll(`.node[data-layer="${layerIndex}"]`);
-        //         nodes.forEach((node, nodeIndex) => {
-        //             const animatedNode = node.cloneNode(true);
-        //             if (isTerminalNode(layerIndex, nodeIndex)) {
-        //                 animatedNode.setAttribute('r', '7');  // Smaller radius
-        //                 animatedNode.setAttribute('fill', '#666');  // dark navy blue color
-        //             } else {
-        //                 animatedNode.setAttribute('r', '10');
-        //                 animatedNode.setAttribute('fill', '#ffb650');
-        //             }
-        //             animatedNode.setAttribute('fill-opacity', '0');
-        //             animationLayer.appendChild(animatedNode);
-
-        //             anime({
-        //                 targets: animatedNode,
-        //                 fillOpacity: 0.7,
-        //                 duration: stepDurationMs,
-        //                 easing: 'easeInOutQuad'
-        //             });
-        //         });
-
-        //         if (layerIndex > 0) {
-        //             const connections = document.querySelectorAll(`.connection[data-to^="${layerIndex},"]`);
-        //             connections.forEach(conn => {
-        //                 const gradient = parseFloat(conn.dataset.gradient);
-        //                 const absGradient = Math.abs(gradient);
-        //                 const opacity = absGradient / maxGradient;
-        //                 // const color = gradient >= 0 ? 'rgb(100, 100, 255)' : 'rgb(255, 100, 100)';
-        //                 const color = gradient < 0 ? 'rgb(100, 100, 255)' : 'rgb(255, 100, 100)';
-
-        //                 const animatedConn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        //                 animatedConn.setAttribute('x1', conn.getAttribute('x2'));
-        //                 animatedConn.setAttribute('y1', conn.getAttribute('y2'));
-        //                 animatedConn.setAttribute('x2', conn.getAttribute('x2'));
-        //                 animatedConn.setAttribute('y2', conn.getAttribute('y2'));
-        //                 animatedConn.setAttribute('stroke', color);
-        //                 animatedConn.setAttribute('stroke-opacity', opacity);
-        //                 animatedConn.setAttribute('stroke-width', '3');
-
-        //                 // Add dashed line for connection between y and y_hat
-        //                 if (layerIndex === layerDims.length) {
-        //                     animatedConn.setAttribute('stroke-dasharray', '5,5');
-        //                 }
-
-        //                 animationLayer.appendChild(animatedConn);
-
-        //                 anime({
-        //                     targets: animatedConn,
-        //                     x2: conn.getAttribute('x1'),
-        //                     y2: conn.getAttribute('y1'),
-        //                     duration: stepDurationMs,
-        //                     easing: 'easeInOutQuad'
-        //                 });
-        //             });
-        //         }
-
-        //         setTimeout(() => animateLayer(layerIndex - 1), stepDurationMs);
-        //     }
-
-        //     // addGradLabels();
-        //     animateLayer(layerDims.length);
-        // }
+        
         function animateBackwardPass() {
-            const stepDurationMs = 500;
             addBackwardPassLabels();
-            // logMessage("1");
-            // setTimeout(() => logMessage("2"), stepDurationMs);
-            // setTimeout(() => logMessage("3"), 2*stepDurationMs);
         }
-
 
 
         function resetTrainingDisplay() {
@@ -1847,24 +1667,6 @@
                 let noise = random.normal(0, sigma);
                 let y = w_true * x + b_true + noise
                 pts.push([x, y]);
-            }
-            // create train/val/test splits of the data (80%, 10%, 10%)
-            let tr = pts.slice(0, Math.floor(0.8 * n));
-            let val = pts.slice(Math.floor(0.8 * n), Math.floor(0.9 * n));
-            let te = pts.slice(Math.floor(0.9 * n));
-            return [tr, val, te];
-        }
-
-        function gen_data(random, n = 100) {
-            let pts = [];
-            for (let i = 0; i < n; i++) {
-                let x = random.uniform(-2.0, 2.0);
-                let y = random.uniform(-2.0, 2.0);
-                // concentric circles
-                // label = 0 if x**2 + y**2 < 1 else 1 if x**2 + y**2 < 2 else 2
-                // very simple dataset
-                let label = x < 0 ? 0 : y < 0 ? 1 : 2;
-                pts.push([[x, y], label]);
             }
             // create train/val/test splits of the data (80%, 10%, 10%)
             let tr = pts.slice(0, Math.floor(0.8 * n));
@@ -2078,8 +1880,9 @@
             constructor(nin, kwargs) {
                 super();
                 // this.w = Array(nin).fill().map(() => new Value(random.uniform(-1, 1) * Math.pow(nin, -0.5)));
-                this.w = Array(nin).fill().map(() => new Value(w_hat));
-                this.b = new Value(0);
+                this.w = Array(nin).fill().map(() => new Value(1));
+                // this.b = new Value(0);
+                this.b = new Value(1);
 
                 this.nonlin = kwargs.nonlin !== undefined ? kwargs.nonlin : true;
             }
@@ -2210,14 +2013,6 @@
         }
 
         function trainUpdate() {
-            // update with AdamW
-            // for (const p of mlp.parameters()) {
-            //     p.m = beta1 * p.m + (1 - beta1) * p.grad;
-            //     p.v = beta2 * p.v + (1 - beta2) * Math.pow(p.grad, 2);
-            //     const m_hat = p.m / (1 - Math.pow(beta1, epoch + 1));
-            //     const v_hat = p.v / (1 - Math.pow(beta2, epoch + 1));
-            //     p.data -= learning_rate * (m_hat / (Math.sqrt(v_hat) + eps) + weight_decay * p.data);
-            // }
             // update with gradient descent
             for (const p of mlp.parameters()) {
                 p.data -= learning_rate * p.grad;
@@ -2333,7 +2128,6 @@
         function setInitialValues() {
             document.getElementById('w-input').value = w_true;
             document.getElementById('b-input').value = b_true;
-            // document.getElementById('noise-input').value = sigma;
         }
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -2347,7 +2141,6 @@
                 trainModel(currentTrainingStage);
             }
 
-            // const buttonsDisableRunning = ['btn-reset-mlp', 'btn-shock-weights', 'btn-step', 'btn-fwd-backprop-update'];
             const buttonsDisableRunning = ['btn-reset-mlp', 'btn-step', 'btn-fwd-backprop-update'];
             buttonsDisableRunning.forEach(id => {
                 const button = document.getElementById(id);
@@ -2383,7 +2176,6 @@
         addEventListeners(btnStep);
         addEventListeners(btnResetMLP);
         addEventListeners(btnFwdBackUp);
-        // btnFwdBackUp.addEventListener('mouseout', removeOpLabels);
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Other html element listeners
@@ -2397,9 +2189,6 @@
         addEventListenersReportingDisplay(displayEpoch);
         addEventListenersReportingDisplay(displayTrainLoss);
         addEventListenersReportingDisplay(displayValLoss);
-
-        // addEventListeners(input_noise);
-
 
         // "Main"
         window.onload = function () {
