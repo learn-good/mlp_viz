@@ -319,8 +319,10 @@
             </div>
             <div id="bottom-right-container">
                 <div id="controls">
-                    <span id="w-label" class="data-params-span">w =</span><input type="text" id="w-input" class="data-params-input">
-                    <span id="b-label" class="data-params-span">b =</span><input type="text" id="b-input" class="data-params-input">
+                    <span id="w-label" class="data-params-span">w =</span><input type="text" id="w-input"
+                        class="data-params-input">
+                    <span id="b-label" class="data-params-span">b =</span><input type="text" id="b-input"
+                        class="data-params-input">
                     <!-- <span class="data-params-span">noise =</span><input type="text" id="noise-input" class="data-params-input"> -->
                     <button id="btn-regen-data" onclick="resetData()">Regenerate data</button>
                 </div>
@@ -353,7 +355,7 @@
     <script>
         // globals
         let mlp;
-        const layerDims = [1,1];
+        const layerDims = [1, 1];
         let train_split, val_split, test_split;
         let predsTrain, predsVal;
 
@@ -374,8 +376,8 @@
         const x_min = -8
         const x_max = 8
 
-        // AdamW
         let learning_rate = 1e-2;
+        // AdamW
         // let beta1 = 0.9;
         // let beta2 = 0.95;
         // let weight_decay = 1e-4;
@@ -386,7 +388,7 @@
         const input_noise = document.getElementById('noise-input');
         const btn_regen_data = document.getElementById('btn-regen-data');
 
-        const shockNoiseScale = 0.3; // Adjust this value to control the magnitude of the shock
+        const shockNoiseScale = 0.5; // Adjust this value to control the magnitude of the shock
 
         const btnPlayPause = document.getElementById('btn-play-pause');
         const btnShock = document.getElementById('btn-shock-weights');
@@ -414,7 +416,8 @@
         const layerColors = {
             x: {
                 shape: "#ccc",
-                overlay: "rgba(204, 204, 204, 0.1)"
+                // overlay: "rgba(255, 255, 255, 0.2)"
+                overlay: "rgb(250, 250, 250)"
             },
             fc: {
                 // keep layer display minimaly white for now
@@ -423,7 +426,8 @@
             },
             y: {
                 shape: "#ccc",
-                overlay: "rgba(204, 204, 204, 0.1)"
+                // overlay: "rgba(255, 255, 255, 0.2)"
+                overlay: "rgb(250, 250, 250)"
             },
             bias: {
                 shape: "#999",
@@ -457,23 +461,26 @@
 
             [train_split, val_split, test_split] = gen_data_linear_regression(random, 100);
             epoch = 0;
-            predsTrain = [];
-            predsVal = [];
+            if (mlp) {
+                checkForward();
+            }
+
             updateDataPlot();
         }
 
         function resetMLP() {
             mlp = new MLP(1, [1]);
-            mlp.parameters()[0].data = 1;
-            mlp.parameters()[1].data = 1;
+            w_hat = 1;
+            b_hat = 1;
+            mlp.parameters()[0].data = w_hat;
+            mlp.parameters()[1].data = b_hat;
             // resetAdamMLP();
 
+            checkForward();
             currentTrainingStage = 0;
             epoch = 0;
-            resetTrainingDisplay();
+            // resetTrainingDisplay();
             updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
-            predsTrain = [];
-            predsVal = [];
             updateDataPlot();
 
             // Clear the existing SVG and draw the new network
@@ -856,7 +863,7 @@
             drawPredictedLine(x, y);
         }
 
-       
+
         function drawTrueLine() {
             const newX = currentTransform.rescaleX(x);
             const newY = currentTransform.rescaleY(y);
@@ -931,29 +938,6 @@
         }
 
 
-
-        
-
-
-        // function plotDataPointsRegression(dataPoints, predictions, isTrainingSet, r = 5) {
-        //     const className = isTrainingSet ? "train-point" : "val-point";
-
-        //     scatter.selectAll(`.${className}`)
-        //         .data(dataPoints)
-        //         .join("circle")
-        //         .attr("class", `data-point regression ${isTrainingSet ? 'train' : 'val'}`)
-        //         .attr("cx", d => x(d[0]))
-        //         .attr("cy", d => y(d[1]))
-        //         .attr("r", r)
-        //         .on("mouseover", (event, d) => {
-        //             showDataPointInfo(event, d);
-        //         })
-        //         .on("mouseout", (event) => {
-        //             clearInfo();
-        //             removeLineToPrediction();
-        //         });
-
-        // }
         function plotDataPointsRegression(dataPoints, predictions, isTrainingSet, r = 5) {
             const className = isTrainingSet ? "train-point" : "val-point";
             const newX = currentTransform.rescaleX(x);
@@ -1041,10 +1025,10 @@
                     content = "Pause training";
                 } else {
                     content = `Start training the network, running successive epochs of the cycle:\n
-                    $$1$$) Forward pass: make predictions and calculate loss.
-                    $$2$$) Backward pass: backpropagate the gradients from the loss function to the parameters.
-                    $$3$$) Update weights and zero gradients.
-                    $$4$$) Go to step 1 (start next iteration).`;
+                    $$1)$$ Forward pass: make predictions and calculate loss.
+                    $$2)$$ Backward pass: backpropagate the gradients from the loss function to the parameters.
+                    $$3)$$ Update weights and zero gradients.
+                    $$4)$$ Go to step 1 (start next iteration).`;
                 }
 
             } else if (target.id === 'btn-fwd-backprop-update') {
@@ -1063,7 +1047,7 @@
                         break;
                 }
             } else if (target.id === 'btn-reset-mlp') {
-                content = `Reset the network parameters to $$0$$.`;
+                content = `Reset the network parameters $$\\hat{w}$$ and $$\\hat{b}$$.`;
             } else if (target.id === 'btn-shock-weights') {
                 content = `Add a small amount of uniform random noise between $$[-${shockNoiseScale}, ${shockNoiseScale}]$$ to the weight parameters.`;
             } else if (target.id === 'btn-step') {
@@ -1112,7 +1096,8 @@
                     const gradEpsilon = 0.0001;
 
                     let color;
-                    if (gradient >= 0) {
+                    // if (gradient >= 0) {
+                    if (gradient < 0) {
                         color = `rgba(0, 0, 255, ${absGradient / (maxGradient + gradEpsilon)})`;
                     } else {
                         color = `rgba(255, 0, 0, ${absGradient / (maxGradient + gradEpsilon)})`;
@@ -1179,27 +1164,27 @@
                     case 'w_hat':
                         explanation = explanation_w_hat;
                         break;
-                    case 'b_hat': 
+                    case 'b_hat':
                         explanation = explanation_b_hat;
                         break;
-                    case 'x': 
+                    case 'x':
                         explanation = explanation_x;
                         break;
-                    case 'one': 
+                    case 'one':
                         explanation = explanation_one;
                         break;
-                        default:
+                    default:
                         if (latexLabel.dataset.info.startsWith('W')) {
                             explanation = `This represents the weight matrix we use to map $$x$$ to $$\\hat{y}$$
                             $$W = ${W_mat}, X = ${X_mat}$$
                             $$\\hat{y} = W \\cdot X = ${W_mat} \\cdot ${X_mat} = \\hat{w}x + \\hat{b} $$`;
                             // If we instead consider $$X_{train}$$, the full training set, we get $$\\hat{y}_{train} = W \\cdot X_{train} = ${W_mat} \\cdot ${X_train} = ${y_train} $$`; 
-                        } 
+                        }
                 }
 
                 // content = `$$${formula}$$\n\n${explanation}`;
                 content = explanation;
-            } 
+            }
 
 
 
@@ -1228,7 +1213,7 @@
 
             if (target.id === 'epoch-display') {
                 content = `An **epoch** is one complete pass of learning through the entire training dataset. ` +
-                `It represents a full cycle of training where the model has seen and learned from all available training examples one time.`;
+                    `It represents a full cycle of training where the model has seen and learned from all available training examples one time.`;
             } else if (target.id === 'train-loss-display') {
                 const trainLoss = formatLossForLatex(document.getElementById('train-loss-value').textContent);
                 content = `**Training Loss**: The average loss (error) of the model on the training dataset.\n\nLower values indicate better performance on the training data.\n\nCurrent value: $$ ${trainLoss}$$`;
@@ -1271,7 +1256,7 @@
         }
 
 
-        function createLatexLabel(x, y, text, color, labelInfo, width=250) {
+        function createLatexLabel(x, y, text, color, labelInfo, width = 250) {
             const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
             foreignObject.setAttribute('x', x - (width / 2));
             foreignObject.setAttribute('y', y - 20);
@@ -1321,7 +1306,7 @@
             svgNetwork.appendChild(createLatexLabel(layerGap, 200, 'x', LATEX_COLOR, "x", singleCharWidth));
             svgNetwork.appendChild(createLatexLabel(layerGap, 430, '1', LATEX_COLOR, "one", singleCharWidth));
 
-            
+
 
 
             // for (let i = 1; i < layerDims.length; i++) {
@@ -1335,22 +1320,30 @@
             svgNetwork.appendChild(createLatexLabel(lastLayerX + braceWidth * 1.5 + 80, svgHeight / 2, 'L(\\hat{y}, y)', LATEX_COLOR_LOSS, "loss", 150));
         }
 
-        // function addOpLabels() {
-        //     const layerGap = svgWidth / (layerDims.length + 2);
-        //     const singleCharWidth = 15;
-        //     const halfwayPointXW = layerGap + layerGap / 4
-        //     svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 233, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
-        //     svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 402, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
-        //     svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '+', LATEX_COLOR, "sum", singleCharWidth+2));
-        //     // svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '\\sum', LATEX_COLOR, "sum", singleCharWidth+2));
-        // }
+        function addOpLabels() {
+            const layerGap = svgWidth / (layerDims.length + 2);
+            const singleCharWidth = 15;
+            const halfwayPointXW = layerGap + layerGap / 4
+            svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 233, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
+            svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 402, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
+            // svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '+', LATEX_COLOR, "sum", singleCharWidth+2));
+            svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '\\sum', LATEX_COLOR, "sum", singleCharWidth+2));
+        }
 
-        // function removeOpLabels() {
-        //     const opLabels = svgNetwork.querySelectorAll('.latex-label[data-info="multiply"], .latex-label[data-info="sum"]');
-        //     opLabels.forEach(label => {
-        //         label.remove();
-        //     });
-        // }
+        function removeOpLabels() {
+            const opLabels = svgNetwork.querySelectorAll('.latex-label[data-info="multiply"], .latex-label[data-info="sum"]');
+            opLabels.forEach(label => {
+                label.remove();
+            });
+        }
+
+        function addGradLabelsParams() {
+
+        }
+
+        function addGradLabelsYHat() {
+
+        }
 
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1449,11 +1442,179 @@
         // Animations
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         function animateForwardPass() {
+            const stepDurationMs = 500;
 
+            const animationLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            svgNetwork.appendChild(animationLayer);
+
+            function isYNode(layerIndex) {
+                return layerIndex === layerDims.length;
+            }
+
+            function animateLayer(layerIndex) {
+                if (layerIndex > layerDims.length) {
+                    svgNetwork.removeChild(animationLayer);
+                    // 
+                    // 
+                    // 
+                    removeOpLabels();
+                    return;
+                }
+
+                const nodes = document.querySelectorAll(`.node[data-layer="${layerIndex}"]`);
+                nodes.forEach(node => {
+                    const animatedNode = node.cloneNode(true);
+                    if (isYNode(layerIndex)) {
+                        animatedNode.setAttribute('r', '7');  // Smaller radius
+                        animatedNode.setAttribute('fill', '#666');  // dark navy blue color
+                    } else {
+                        animatedNode.setAttribute('r', '10');
+                        animatedNode.setAttribute('fill', '#ffb650');
+                    }
+                    animatedNode.setAttribute('fill-opacity', '0');
+                    animationLayer.appendChild(animatedNode);
+
+                    anime({
+                        targets: animatedNode,
+                        fillOpacity: 0.7,
+                        duration: stepDurationMs,
+                        easing: 'easeInOutQuad'
+                    });
+                });
+
+                if (layerIndex < layerDims.length) {
+                    const connections = document.querySelectorAll(`.connection[data-from^="${layerIndex},"]`);
+                    connections.forEach(conn => {
+                        const strength = parseFloat(conn.dataset.strength);
+                        const absStrength = Math.abs(strength);
+                        const opacity = absStrength / maxStrength;
+                        const color = strength >= 0 ? 'rgb(100, 100, 255)' : 'rgb(255, 100, 100)';
+
+                        const animatedConn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        animatedConn.setAttribute('x1', conn.getAttribute('x1'));
+                        animatedConn.setAttribute('y1', conn.getAttribute('y1'));
+                        animatedConn.setAttribute('x2', conn.getAttribute('x1'));
+                        animatedConn.setAttribute('y2', conn.getAttribute('y1'));
+                        animatedConn.setAttribute('stroke', color);
+                        animatedConn.setAttribute('stroke-opacity', opacity);
+                        animatedConn.setAttribute('stroke-width', '3');
+
+                        // Add dashed line for connection between y_hat and y
+                        if (layerIndex === layerDims.length - 1) {
+                            animatedConn.setAttribute('stroke-dasharray', '5,5');
+                        }
+
+                        animationLayer.appendChild(animatedConn);
+
+                        anime({
+                            targets: animatedConn,
+                            x2: conn.getAttribute('x2'),
+                            y2: conn.getAttribute('y2'),
+                            duration: stepDurationMs,
+                            easing: 'easeInOutQuad'
+                        });
+                    });
+                }
+
+                setTimeout(() => animateLayer(layerIndex + 1), stepDurationMs);
+            }
+            addOpLabels();
+            animateLayer(0);
         }
 
-        function animateBackwardPass() {
+        // TODO
+        // TODO Make each step substantially longer, and pause at each relevant layer to calc grads
+        // TODO
+        // function animateBackwardPass() {
+        //     const stepDurationMs = 250;
 
+        //     const animationLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        //     svgNetwork.appendChild(animationLayer);
+
+
+        //     function isTerminalNode(layerIndex, nodeIndex) {
+        //         // X nodes (input layer)
+        //         if (layerIndex === 0) return true;
+
+        //         // Bias nodes (last node in each layer except the output layer)
+        //         if (layerIndex < layerDims.length - 1 && nodeIndex === layerDims[layerIndex]) return true;
+
+        //         return false;
+        //     }
+
+        //     function animateLayer(layerIndex) {
+        //         if (layerIndex < 0) {
+        //             svgNetwork.removeChild(animationLayer);
+        //             return;
+        //         }
+
+        //         const nodes = document.querySelectorAll(`.node[data-layer="${layerIndex}"]`);
+        //         nodes.forEach((node, nodeIndex) => {
+        //             const animatedNode = node.cloneNode(true);
+        //             if (isTerminalNode(layerIndex, nodeIndex)) {
+        //                 animatedNode.setAttribute('r', '7');  // Smaller radius
+        //                 animatedNode.setAttribute('fill', '#666');  // dark navy blue color
+        //             } else {
+        //                 animatedNode.setAttribute('r', '10');
+        //                 animatedNode.setAttribute('fill', '#ffb650');
+        //             }
+        //             animatedNode.setAttribute('fill-opacity', '0');
+        //             animationLayer.appendChild(animatedNode);
+
+        //             anime({
+        //                 targets: animatedNode,
+        //                 fillOpacity: 0.7,
+        //                 duration: stepDurationMs,
+        //                 easing: 'easeInOutQuad'
+        //             });
+        //         });
+
+        //         if (layerIndex > 0) {
+        //             const connections = document.querySelectorAll(`.connection[data-to^="${layerIndex},"]`);
+        //             connections.forEach(conn => {
+        //                 const gradient = parseFloat(conn.dataset.gradient);
+        //                 const absGradient = Math.abs(gradient);
+        //                 const opacity = absGradient / maxGradient;
+        //                 // const color = gradient >= 0 ? 'rgb(100, 100, 255)' : 'rgb(255, 100, 100)';
+        //                 const color = gradient < 0 ? 'rgb(100, 100, 255)' : 'rgb(255, 100, 100)';
+
+        //                 const animatedConn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        //                 animatedConn.setAttribute('x1', conn.getAttribute('x2'));
+        //                 animatedConn.setAttribute('y1', conn.getAttribute('y2'));
+        //                 animatedConn.setAttribute('x2', conn.getAttribute('x2'));
+        //                 animatedConn.setAttribute('y2', conn.getAttribute('y2'));
+        //                 animatedConn.setAttribute('stroke', color);
+        //                 animatedConn.setAttribute('stroke-opacity', opacity);
+        //                 animatedConn.setAttribute('stroke-width', '3');
+
+        //                 // Add dashed line for connection between y and y_hat
+        //                 if (layerIndex === layerDims.length) {
+        //                     animatedConn.setAttribute('stroke-dasharray', '5,5');
+        //                 }
+
+        //                 animationLayer.appendChild(animatedConn);
+
+        //                 anime({
+        //                     targets: animatedConn,
+        //                     x2: conn.getAttribute('x1'),
+        //                     y2: conn.getAttribute('y1'),
+        //                     duration: stepDurationMs,
+        //                     easing: 'easeInOutQuad'
+        //                 });
+        //             });
+        //         }
+
+        //         setTimeout(() => animateLayer(layerIndex - 1), stepDurationMs);
+        //     }
+
+        //     // addGradLabels();
+        //     animateLayer(layerDims.length);
+        // }
+        function animateBackwardPass() {
+            const stepDurationMs = 500;
+            logMessage("1");
+            setTimeout(() => logMessage("2"), stepDurationMs);
+            setTimeout(() => logMessage("3"), 2*stepDurationMs);
         }
 
 
@@ -1474,6 +1635,47 @@
                 document.getElementById('val-loss-value').textContent = valLoss.toFixed(10);
             }
         }
+
+        function animateShockWeights() {
+            setMaxes();
+            const w_connection = document.querySelector('.connection[data-from="0,0"]');
+            const b_connection = document.querySelector('.connection[data-from="0,1"]');
+
+            [w_connection, b_connection].forEach(connection => {
+                if (connection && connection.dataset.strength) {
+                    const newStrength = parseFloat(connection.dataset.strength);
+
+                    // Calculate new opacity
+                    const opacity = Math.abs(newStrength) / maxStrength;
+
+                    // Animate jitter effect and opacity change
+                    connection.animate([
+                        { transform: 'translateY(0px)' },
+                        { transform: 'translateY(-5px)' },
+                        { transform: 'translateY(5px)' },
+                        { transform: 'translateY(0px)' }
+                    ], {
+                        duration: 200,
+                        iterations: 1,
+                        fill: 'forwards'
+                    });
+
+                    // Update the stroke-opacity attribute after animation
+                    setTimeout(() => {
+                        connection.setAttribute('stroke-opacity', opacity);
+                    }, 200);
+                }
+            });
+
+            updatedStrengthViz();
+            updateConnectionOpacity();
+
+            // Update w_hat and b_hat
+            w_hat = mlp.parameters()[0].data;
+            b_hat = mlp.parameters()[1].data;
+            updateDataPlot();
+        }
+
 
 
         function logMessage(message) {
@@ -1522,7 +1724,7 @@
                 return mean + stddev * u * s;
             }
         }
-        
+
         function gen_data_linear_regression(random, n = 100) {
             let pts = [];
             for (let i = 0; i < n; i++) {
@@ -1843,7 +2045,7 @@
             let loss = new Value(0);
             for (const [x, y] of split) {
                 const y_hat = mlp.call([new Value(x)])[0];
-                const error =  squared_error_1d(y_hat, y)
+                const error = squared_error_1d(y_hat, y)
                 loss = loss.add(error);
             }
             loss = loss.mul(1.0 / split.length); // normalize the loss
@@ -1854,9 +2056,9 @@
             return y_pred.sub(y_true).pow(2);
         }
 
-        function trainForward() {   
+        function trainForward() {
             // forward pass
-            if (epoch % 10 === 0) {
+            if (epoch % 1 === 0) {
                 const val_loss = evalSplit(mlp, val_split);
                 updateTrainingDisplay(epoch, null, val_loss);
             }
@@ -1864,13 +2066,12 @@
             loss = new Value(0);
             for (const [x, y] of train_split) {
                 const y_hat = mlp.call([new Value(x)])[0];
-                const error =  squared_error_1d(y_hat, y)
+                const error = squared_error_1d(y_hat, y)
                 loss = loss.add(error);
             }
             loss = loss.mul(1.0 / train_split.length);
             updateTrainingDisplay(epoch, loss.data, null);
 
-            updateDataPlot();
         }
 
         function checkForward() {
@@ -1880,9 +2081,9 @@
             loss = 0;
             for (const [x, y] of train_split) {
                 const y_hat = mlp.call([new Value(x)])[0].data;
-                loss += (y_hat - y)**2;
+                loss += (y_hat - y) ** 2;
             }
-            loss /=  train_split.length;
+            loss /= train_split.length;
             updateTrainingDisplay("N/A", loss, null);
             mlp.zeroGrad();
         }
@@ -1909,6 +2110,12 @@
             updatedStrengthViz();
             mlp.zeroGrad();
             updateTrainingDisplay(epoch, loss.data, null);
+
+            // Update w_hat and b_hat
+            w_hat = mlp.parameters()[0].data;
+            b_hat = mlp.parameters()[1].data;
+
+            updateDataPlot();
 
             epoch++;
         }
@@ -2059,7 +2266,7 @@
         addEventListeners(btnResetMLP);
         addEventListeners(btnFwdBackUp);
         // btnFwdBackUp.addEventListener('mouseout', removeOpLabels);
-        
+
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Other html element listeners
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -2075,10 +2282,6 @@
 
         // addEventListeners(input_noise);
 
-        document.getElementById('btn-shock-weights').addEventListener('click', function () {
-            mlp.shockWeights();
-            // animateShockWeights();
-        });
 
         // "Main"
         window.onload = function () {
@@ -2088,7 +2291,7 @@
             resetData();
             resetMLP();
             checkForward();
-            
+
         };
 
     </script>
