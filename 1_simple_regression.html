@@ -51,7 +51,8 @@
             /* flex: 1; */
             min-height: 350px;
             padding: 15px;
-            overflow-y: auto;
+            /* overflow-y: auto; */
+            overflow: hidden;
         }
 
         .container {
@@ -87,7 +88,8 @@
 
             height: 250px;
             border-radius: 15px;
-            overflow-y: auto;
+            /* overflow-y: auto; */
+            overflow: hidden;
 
         }
 
@@ -463,6 +465,11 @@
             epoch = 0;
             if (mlp) {
                 checkForward();
+                removeBackwardPassLabels();
+                currentTrainingStage = 0;
+                epoch = 0;
+                // resetTrainingDisplay();
+                updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
             }
 
             updateDataPlot();
@@ -485,6 +492,8 @@
 
             // Clear the existing SVG and draw the new network
             drawNetwork();
+            removeBackwardPassLabels();
+
         }
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -512,7 +521,7 @@
             svgNetwork.appendChild(layersGroup);
 
             const nodesGroupRaised = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            
+
             const layerGap = svgWidth / (layerDims.length + 2);
             setMaxes(); // get max strength and gradient of network for drawing
 
@@ -1057,7 +1066,7 @@
                         break;
                     case 2:
                         showNetworkGradients();
-                        content = `**Update**: based on our optimization strategy (gradient descent in our case) and hyperparameters (learning rate), make changes to out parameters $$\\hat{w}$$ and $$\\hat{b}$$, nudging them in the direction of lower loess. Zero the gradients to prepare for the next iteration.`;
+                        content = `**Update**: based on our optimization strategy (gradient descent in our case) and hyperparameters (learning rate), make changes to out parameters $$\\hat{w}$$ and $$\\hat{b}$$, nudging them in the direction of lower loss. Zero the gradients to prepare for the next iteration.`;
                         break;
                 }
             } else if (target.id === 'btn-reset-mlp') {
@@ -1187,6 +1196,75 @@
                     case 'one':
                         explanation = explanation_one;
                         break;
+                    case 'loss_expanded':
+                        // const spaces1 = `\\ `.repeat(13);
+                        // const spaces2 = `\\ `.repeat(20);
+                        // explanation = `This is the Mean Squared Error (MSE) loss function for a single data point:\n
+                        // $$ L(\\hat{y}, y) = (\\hat{y} - y)^2$$
+                        // $$ ${spaces1} = (\\hat{w}x + \\hat{b} - y)^2 $$\n
+                        // For the entire data set:\n
+                        // $$MSE(\\hat{y},y) = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i)^2$$
+                        // $$${spaces2} = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{w} x_i + \\hat{b} - y_i)^2$$`;
+                        explanation = `This is the Mean Squared Error (MSE) loss function for a single data point:\n
+                        $$ L(\\hat{y}, y) = (\\hat{y} - y)^2$$\n
+                        For the entire data set:\n
+                        $$MSE(\\hat{y},y) = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i)^2$$`;
+                        break;
+
+                    case 'y_hat_grad':
+                        explanation = `This is the gradient of the loss with respect to $$\\hat{y}$$:\n
+                        $$ \\frac{dL}{\\partial \\hat{y}} = 2(\\hat{y} - y) $$\n
+                        This gradient is derived using the power rule for derivatives:\n
+                        If $$f(x) = x^n$$, then $$\\frac{d}{dx}f(x) = nx^{n-1}$$\n
+                        Here, $$L = (\\hat{y} - y)^2$$, so $$n=2$$, and we get $$2(\\hat{y} - y)^{2-1} = 2(\\hat{y} - y)$$.`;
+                        break;
+
+                    case 'w_hat_d1':
+                        explanation = `This is the chain rule applied to find the gradient of the loss with respect to $$\\hat{w}$$:\n
+                        $$ \\frac{\\partial L}{\\partial \\hat{w}} = \\frac{\\partial L}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial \\hat{w}} $$\n
+                        We use the chain rule because $$\\hat{w}$$ affects the loss through $$\\hat{y}$$.`;
+                        break;
+
+                    case 'w_hat_d2':
+                        // explanation = `This is the expanded form of the gradient of the loss with respect to $$\\hat{w}$$:\n
+                        // $$ \\frac{\\partial L}{\\partial \\hat{w}} = 2(\\hat{y} - y) \\cdot x $$\n
+                        // Here, $$x$$ comes from $$\\frac{\\partial \\hat{y}}{\\partial \\hat{w}} = x$$ because $$\\hat{y} = \\hat{w}x + \\hat{b}$$.`;
+                        // $$ \\frac{\\partial L}{\\partial \\hat{w}} = 2(\\hat{y} - y) * x = 2(\\hat{w}x + \\hat{b} - y) * x$$\n
+                        // For the entire data set: $$\\frac{\\partial L}{\\partial \\hat{w}} = \\frac{2}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i) x_i  = \\frac{2}{n} \\sum_{i=1}^{n}  (\\hat{w}x_i + \\hat{b} - y_i) x_i$$`;
+                        explanation = `This is the expanded form of the gradient of the loss with respect to $$\\hat{w}$$:\n
+                        $$ \\frac{\\partial L}{\\partial \\hat{w}} = 2(\\hat{y} - y) * x$$\n
+                        Here, the $$x$$ comes from the product rule of derivatives. $$\\frac{\\partial \\hat{y}}{\\partial \\hat{w}} = x$$ because $$\\hat{y} = (\\hat{w}*x) + \\hat{b}$$.\n
+                        For the entire data set: $$\\frac{\\partial L}{\\partial \\hat{w}} = \\frac{2}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i) * x_i$$`;
+                        break;
+
+                    case 'update_w_hat':
+                        explanation = `This is the update rule for $$\\hat{w}$$ using gradient descent:\n
+                        $$ \\hat{w} := \\hat{w} - \\alpha  \\frac{\\partial L}{\\partial \\hat{w}} $$\n
+                        where $$\\alpha=${learning_rate}$$ is the learning rate. This update nudges $$\\hat{w}$$ in the direction that reduces the loss.`;
+                        break;
+
+                    case 'b_hat_d1':
+                        explanation = `This is the chain rule applied to find the gradient of the loss with respect to $$\\hat{b}$$:\n
+                        $$ \\frac{\\partial L}{\\partial \\hat{b}} = \\frac{\\partial L}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial \\hat{b}} $$\n
+                        We use the chain rule because $$\\hat{b}$$ affects the loss through $$\\hat{y}$$.`;
+                        break;
+
+                    case 'b_hat_d2':
+                        // s is the expanded form of the gradient of the loss with respect to $$\\hat{b}$$:\n
+                        //     $$ \\frac{\\partial L}{\\partial \\hat{b}} = 2(\\hat{y} - y) * 1 = 2(\\hat{w}x + \\hat{b} - y)$$\n
+                        //     Here, the $$1$$ comes from the product rule of derivatives. $$\\frac{\\partial \\hat{y}}{\\partial \\hat{b}} = 1$$ because $$\\hat{y} = \\hat{w}x + (\\hat{b}*1)$$.\n
+                        //     For the entire data set: $
+                        explanation = `This is the expanded form of the gradient of the loss with respect to $$\\hat{b}$$:\n
+                        $$ \\frac{\\partial L}{\\partial \\hat{b}} = 2(\\hat{y} - y) * 1$$\n
+                        Here, the $$1$$ comes from the product rule of derivatives. $$\\frac{\\partial \\hat{y}}{\\partial \\hat{b}} = 1$$ because $$\\hat{y} = \\hat{w}x + (\\hat{b}*1)$$.\n
+                        For the entire data set: $$\\frac{\\partial L}{\\partial \\hat{b}} = \\frac{2}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i) $$`;
+                        break;
+
+                    case 'update_b_hat':
+                        explanation = `This is the update rule for $$\\hat{b}$$ using gradient descent:\n
+                        $$ \\hat{b} := \\hat{b} - \\alpha  \\frac{\\partial L}{\\partial \\hat{b}} $$\n
+                        where $$\\alpha=${learning_rate}$$ is the learning rate. This update nudges $$\\hat{b}$$ in the direction that reduces the loss.`;
+                        break;
                     default:
                         if (latexLabel.dataset.info.startsWith('W')) {
                             explanation = `This represents the weight matrix we use to map $$x$$ to $$\\hat{y}$$
@@ -1270,7 +1348,7 @@
         }
 
 
-        function createLatexLabel(x, y, text, color, labelInfo, width = 250, height=40) {
+        function createLatexLabel(x, y, text, color, labelInfo, width = 250, height = 40) {
             const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
             foreignObject.setAttribute('x', x - (width / 2));
             foreignObject.setAttribute('y', y - 20);
@@ -1305,13 +1383,13 @@
             const layerGap = svgWidth / (layerDims.length + 2);
 
             // Input layer label
-            svgNetwork.appendChild(createLatexLabel(layerGap, svgHeight - 20, 'X', LATEX_COLOR, "X"));
+            svgNetwork.appendChild(createLatexLabel(layerGap, svgHeight - 20, 'X', LATEX_COLOR, "X", 50));
             // Output layer label
             svgNetwork.appendChild(createLatexLabel(layerDims.length * layerGap, svgHeight - 20, `\\hat{y} = W \\cdot X = \\hat{w}x + \\hat{b}`, LATEX_COLOR, "y_hat"));
             // True values label
             svgNetwork.appendChild(createLatexLabel((layerDims.length + 1) * layerGap, svgHeight - 20, 'y', LATEX_COLOR, "y"));
             // Weight labels
-            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 20, `W`, LATEX_COLOR, "W" + 1));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 20, `W`, LATEX_COLOR, "W" + 1, 50));
 
             // x, 1, w_hat and b_hat
             const singleCharWidth = 15;
@@ -1340,14 +1418,29 @@
             // right below loss expand mse formula
             const lastLayer = (layerDims.length + 1) * (svgWidth / (layerDims.length + 2));
             const braceWidth = 15;
-            svgNetwork.appendChild(createLatexLabel(lastLayer + braceWidth * 1.5 + 80, 
-                                                    (svgHeight / 2) + 30, '={(\\hat{y} - y)}^2', LATEX_COLOR_LOSS, "loss_expanded", 150));
-            
+            svgNetwork.appendChild(createLatexLabel(lastLayer + braceWidth * 1.5 + 80,
+                (svgHeight / 2) + 30, '={(\\hat{y} - y)}^2', LATEX_COLOR_LOSS, "loss_expanded", 150));
+
             // right below y_hat node - dL/dy_hat
-            svgNetwork.appendChild(createLatexLabel(layerDims.length * layerGap, (svgHeight / 2) + 50, 
-            `\\dfrac{dL}{d\\hat{y}} = 2(\\hat{y} - y)`, LATEX_COLOR, "y_hat_grad", 180, 60));
-            // right above w_hat - dL/dw_hat = dy_hat/dw_hat * d
-            // right below b_hat - 
+            svgNetwork.appendChild(createLatexLabel(layerDims.length * layerGap, (svgHeight / 2) + 50,
+                `\\dfrac{\\partial L}{\\partial \\hat{y}} = 2(\\hat{y} - y)`, LATEX_COLOR, "y_hat_grad", 180, 60));
+
+            // right above w_hat
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 75, `\\dfrac{\\partial L}{\\partial \\hat{w}} = \\dfrac{\\partial L}{\\partial \\hat{y}} * \\dfrac{\\partial \\hat{y}}{\\partial \\hat{w}}`, LATEX_COLOR, "w_hat_d1", 250, 60));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 135, `\\dfrac{\\partial L}{\\partial \\hat{w}} = 2(\\hat{y} - y) * x`, LATEX_COLOR, "w_hat_d2", 250, 60));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 195, `\\hat{w} := \\hat{w} - \\alpha \\dfrac{\\partial L}{\\partial \\hat{w}}`, LATEX_COLOR, "update_w_hat", 250, 60));
+
+            // right below b_hat
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 460, `\\dfrac{\\partial L}{\\partial \\hat{b}} = \\dfrac{\\partial L}{\\partial \\hat{y}} * \\dfrac{\\partial \\hat{y}}{\\partial \\hat{b}}`, LATEX_COLOR, "b_hat_d1", 250, 60));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 520, `\\dfrac{\\partial L}{\\partial \\hat{b}} = 2(\\hat{y} - y) * 1`, LATEX_COLOR, "b_hat_d2", 250, 60));
+            svgNetwork.appendChild(createLatexLabel(layerGap + layerGap / 2, 580, `\\hat{b} := \\hat{b} - \\alpha \\dfrac{\\partial L}{\\partial \\hat{b}}`, LATEX_COLOR, "update_b_hat", 250, 60));
+        }
+
+        function removeBackwardPassLabels() {
+            const labelsQuery = `.latex-label[data-info^="loss_expanded"], .latex-label[data-info^="y_hat_grad"], 
+            .latex-label[data-info^="w_hat_"], .latex-label[data-info^="b_hat_"], .latex-label[data-info^="update_"]`;
+            const backwardLabels = svgNetwork.querySelectorAll(labelsQuery);
+            backwardLabels.forEach(label => label.remove());
         }
 
 
@@ -1358,7 +1451,7 @@
             svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 233, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
             svgNetwork.appendChild(createLatexLabel(halfwayPointXW, 402, '\\times', LATEX_COLOR, "multiply", singleCharWidth));
             // svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '+', LATEX_COLOR, "sum", singleCharWidth+2));
-            svgNetwork.appendChild(createLatexLabel(2*layerGap , 325, '\\sum', LATEX_COLOR, "sum", singleCharWidth+2));
+            svgNetwork.appendChild(createLatexLabel(2 * layerGap, 325, '\\sum', LATEX_COLOR, "sum", singleCharWidth + 2));
         }
 
         function removeOpLabels() {
@@ -1368,15 +1461,6 @@
             });
         }
 
-        
-
-        function addGradLabelsParams() {
-
-        }
-
-        function addGradLabelsYHat() {
-
-        }
 
 
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1487,10 +1571,7 @@
             function animateLayer(layerIndex) {
                 if (layerIndex > layerDims.length) {
                     svgNetwork.removeChild(animationLayer);
-                    // 
-                    // 
-                    // 
-                    removeOpLabels();
+                    // removeOpLabels();
                     return;
                 }
 
@@ -1551,7 +1632,7 @@
 
                 setTimeout(() => animateLayer(layerIndex + 1), stepDurationMs);
             }
-            addOpLabels();
+            // addOpLabels();
             animateLayer(0);
         }
 
@@ -2152,6 +2233,7 @@
             updateDataPlot();
 
             epoch++;
+
         }
 
         function trainModelStep(stage, fullStep = false) {
@@ -2179,6 +2261,7 @@
                         break;
                     case 2: // Update
                         trainUpdate();
+                        removeBackwardPassLabels();
                         break;
                 }
                 currentTrainingStage = (stage + 1) % 3;
@@ -2208,6 +2291,7 @@
             currentTrainingStage = 0;
             mlp.zeroGrad();
             updateFwdBackUpButton(btnFwdBackUp, currentTrainingStage);
+            removeBackwardPassLabels();
         }
 
         function argmax(array) {
