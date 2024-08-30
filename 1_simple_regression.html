@@ -352,7 +352,7 @@
         const x_min = -8
         const x_max = 8
 
-        let learning_rate = 1e-2;
+        let learning_rate = 1e-3;
 
         const input_w = document.getElementById('w-input');
         const input_b = document.getElementById('b-input');
@@ -986,12 +986,12 @@
             const b_grad = params[1].grad;
             let explanation_w_hat = `Weight term: $$\\hat{w}$$\n\nThis represents our current guess for the true parameter $$w$$.\nThis is a mutable parameter that we use to scale the input feature $$x$$.\n\nValue: $$${w_strength.toFixed(4)}$$\nGradient: $$${w_grad.toFixed(4)}$$`;
             if (Math.abs(w_grad) > 0.0001) {
-                const adjustment = (-learning_rate * w_grad).toFixed(6)
+                const adjustment = (-learning_rate * w_grad).toFixed(7)
                 explanation_w_hat += `\nAdjustment = $$-\\alpha * \\frac{\\partial L}{\\partial \\hat{w}} = -${learning_rate} * ${w_grad.toFixed(4)} = ${adjustment} $$`
             }
             let explanation_b_hat = `Bias term: $$\\hat{b}$$\n\nThis represents our current guess for the true parameter $$b$$.\nThis is a mutable parameter that captures constant effects not explained by the input feature $$x$$.\n\nValue: $$${b_strength.toFixed(4)}$$\nGradient: $$${b_grad.toFixed(4)}$$`;
             if (Math.abs(b_grad) > 0.0001) {
-                const adjustment = (-learning_rate * b_grad).toFixed(6)
+                const adjustment = (-learning_rate * b_grad).toFixed(7)
                 explanation_b_hat += `\nAdjustment = $$-\\alpha * \\frac{\\partial L}{\\partial \\hat{b}} = -${learning_rate} * ${b_grad.toFixed(4)} = ${adjustment} $$`
             }
 
